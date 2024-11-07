@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { useEffect } from 'react';
 import { apiClient } from '../api/apiClient';
 import { useUser } from '../contexts/UserContext';
+import { TextBox } from '@/components/TextBox';
 interface ChatBubbleProps {
   author: {
     username: string;
@@ -147,6 +148,9 @@ export default function HomePage() {
             <p className="text-sm text-gray-400">Send a message to start a conversation!</p>
           </div>
         )}
+      </div>
+      <div className="sticky bottom-0 w-full pb-4">
+        <TextBox />
       </div>
     </div>
   );
