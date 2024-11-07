@@ -80,7 +80,10 @@ export default function HomePage() {
   if (!currentServer) {
     return (
       <div className="flex h-screen items-center justify-center text-gray-500">
-        <p className="text-lg">Open a chat to start a conversation</p>
+        <div className="flex flex-col items-center h-fit w-72 bg-neutral rounded-3xl px-4 py-12 text-center">
+            <p className="text-lg text-white">Open a chat to start a conversation.</p>
+            <p className="text-7xl mt-8 [text-shadow:_0_0_50px_rgba(255,255,255,0.5)]">💬</p>
+        </div>
       </div>
     );
   }
@@ -123,26 +126,25 @@ export default function HomePage() {
   const messageGroups = groupMessages(server?.messages || []);
 
   return (
-    <div className="flex flex-col h-screen bg-background">
+    <div className="flex flex-col h-screen bg-background mr-4">
       <div className="flex-1 overflow-y-auto p-4">
         <h1 className="text-2xl font-bold mb-4 text-white">{currentServer.name}</h1>
         
         {messageGroups.length > 0 ? (
           <div className="space-y-6">
-            {messageGroups.map((message) => {
-              return (
-                  <ChatBubble
-                    key={message[0].id}
-                  author={message[0].user}
-                  message={message[0]}
-                  isCurrentUser={message[0].user_id.toString() === user?.id.toString()}
-                  />
-              );
-            })}
+            {messageGroups.map((message) => (
+              <ChatBubble
+                key={message[0].id}
+                author={message[0].user}
+                message={message[0]}
+                isCurrentUser={message[0].user_id.toString() === user?.id.toString()}
+              />
+            ))}
           </div>
         ) : (
-          <div className="flex items-center justify-center h-full text-gray-500">
-            <p>No messages yet. Start a conversation!</p>
+          <div className="flex flex-col items-center justify-center h-72 w-72">
+            <p className="text-lg text-white">No messages here yet.</p>
+            <p className="text-sm text-gray-400">Send a message to start a conversation!</p>
           </div>
         )}
       </div>

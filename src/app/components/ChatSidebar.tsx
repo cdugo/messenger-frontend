@@ -48,7 +48,7 @@ export function ChatSidebar() {
   if (!user) return null;
 
   return (
-    <div className="fixed left-0 top-0 z-40 h-screen w-60 border-r bg-background">
+    <div className="w-1/5 border-r bg-background">
       <div className="flex h-full flex-col">
         <div className="flex h-14 items-center border-b px-4">
           <h2 className="font-semibold">Servers</h2>
