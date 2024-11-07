@@ -2,7 +2,8 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, LoginCredentials } from '../types/user';
-import { authClient } from '../api/authClient';
+import { apiClient } from '../api/apiClient';
+import router from 'next/router';
 
 interface UserContextType {
   user: User | null;
@@ -23,10 +24,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
   const checkAuth = async () => {
     try {
-      const currentUser = await authClient.getCurrentUser();
-      setUser(currentUser);
+      const currentUser = await apiClient.getMe();
+      setUser(currentUser.user);
     } catch (error) {
       setUser(null);
+      router.push('/login');
     } finally {
       setLoading(false);
     }
@@ -34,7 +36,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (credentials: LoginCredentials) => {
     try {
-      const loggedInUser = await authClient.login(credentials);
+      const loggedInUser = await apiClient.login(credentials);
       setUser(loggedInUser);
     } catch (error) {
       throw new Error('Login failed');
@@ -43,7 +45,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
-      await authClient.logout();
+      await apiClient.logout();
       setUser(null);
     } catch (error) {
       throw new Error('Logout failed');
