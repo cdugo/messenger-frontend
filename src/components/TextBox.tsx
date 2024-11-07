@@ -1,32 +1,59 @@
-export function TextBox() {
+import { Input } from "@medusajs/ui";
+
+interface TextBoxProps {
+    value: string;
+    onChange: (value: string) => void;
+    onSubmit: (e: React.FormEvent) => void;
+}
+  
+export function TextBox({ value, onChange, onSubmit }: TextBoxProps) {
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      onSubmit(event);
+    }
+  };
+
+  const lineHeight = 24;
+  const maxHeight = lineHeight * 5;
+
   return (
-    <div className="flex flex-row items-center justify-between w-full min-h-[56px] rounded-[100px] bg-[#191919] px-4">
-        <div className="flex flex-row items-center flex-1">
-        <div className="bg-[#2A2A2A] rounded-full p-2 w-8 h-8 flex items-center justify-center mr-3 shrink-0">
-            <PlusIcon />
+    <form onSubmit={onSubmit} className="flex flex-row items-center justify-between w-full min-h-[56px] rounded-[100px] bg-[#191919] px-4">
+        <div className="flex flex-row items-center w-full">
+          <div className="bg-[#2A2A2A] rounded-full p-2 w-8 h-8 flex items-center justify-center mr-3 shrink-0">
+              <PlusIcon />
+          </div>
+          <textarea 
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            onKeyDown={handleKeyDown}
+            className="w-full my-3 pr-4 bg-transparent focus:outline-none border-none resize-none text-white
+              scrollbar-thin scrollbar-thumb-[#3A3A3A] hover:scrollbar-thumb-[#404040] scrollbar-track-transparent"
+            placeholder="Type a message..."
+            rows={1}
+            style={{
+              minHeight: '24px',
+              maxHeight: `${maxHeight}px`,
+              overflowY: 'auto',
+              lineHeight: `${lineHeight}px`
+            }}
+            onInput={(e) => {
+              const target = e.target as HTMLTextAreaElement;
+              target.style.height = 'auto';
+              const newHeight = Math.min(target.scrollHeight, maxHeight);
+              target.style.height = `${newHeight}px`;
+            }}
+          />
         </div>
-        <textarea 
-          className="w-full py-4 rounded-none bg-transparent focus:outline-none border-none resize-none overflow-hidden"
-          placeholder="Type a message..."
-          rows={1}
-          style={{
-            minHeight: '24px',
-            height: 'auto'
-          }}
-          onInput={(e) => {
-            const target = e.target as HTMLTextAreaElement;
-            target.style.height = 'auto';
-            target.style.height = target.scrollHeight + 'px';
-          }}
-        />
-        </div>
-        <div className="hover:opacity-70 cursor-pointer ml-3 shrink-0">
+        <button 
+          type="submit"
+          className="hover:opacity-70 cursor-pointer ml-3 shrink-0 bg-transparent border-0 p-0"
+        >
             <SendIcon />
-        </div>
-    </div>
+        </button>
+    </form>
   );
 }
-
 
 function PlusIcon() {
     return <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
