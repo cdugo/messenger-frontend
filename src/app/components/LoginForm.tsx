@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser } from '../contexts/UserContext';
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from 'next/link';
-import { authClient } from '../api/authClient';
+import { apiClient } from '../api/apiClient';
 
 export default function LoginForm() {
   const [username, setUsername] = useState('');
@@ -24,18 +24,24 @@ export default function LoginForm() {
   const router = useRouter();
   const user = useUser();
 
+  useEffect(() => {
+    if (user.user) {
+      router.push('/');
+    }
+  }, [user.user]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
 
     try {
-      const result = await authClient.login({ username, password });
+      const result = await apiClient.login({ username, password });
 
       if (!result) {
         setError('Invalid username or password');
       } else {
-        router.push('/servers');
+        router.push('/');
         router.refresh();
       }
     } catch {
@@ -46,7 +52,6 @@ export default function LoginForm() {
   };
 
   if (user.user) {
-    router.push('/servers');
     return null;
   }
 

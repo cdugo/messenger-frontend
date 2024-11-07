@@ -1,3 +1,4 @@
+import { MeResponse, Server, ServerWithMessages } from '../types/server';
 import { LoginCredentials, User } from '../types/user';
 
 interface SignUpCredentials {
@@ -49,6 +50,22 @@ class APIClient {
     }
   }
 
+  async getServer(id: string): Promise<ServerWithMessages | null> {
+    try {
+      const response = await fetch(`${this.baseUrl}/servers/${id}`, {
+        credentials: 'include',
+    });
+
+    if (!response.ok) {
+        throw new Error('Failed to get server');
+      }
+
+      return response.json();
+    } catch (error) {
+      return null;
+    }
+  }
+
   async signup(credentials: SignUpCredentials): Promise<User> {
     const response = await fetch(`${this.baseUrl}/signup`, {
       method: 'POST',
@@ -64,6 +81,13 @@ class APIClient {
 
     return response.json();
   }
+
+  async getMe(): Promise<MeResponse> {
+    const response = await fetch(`${this.baseUrl}/me`, {
+      credentials: 'include',
+    });
+    return response.json();
+  }
 }
 
-export const authClient = new APIClient();
+export const apiClient = new APIClient();

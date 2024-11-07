@@ -13,7 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from 'next/link';
-import { authClient } from '../api/authClient';
+import { apiClient } from '../api/apiClient';
 
 interface SignUpCredentials {
   email: string;
@@ -37,7 +37,7 @@ export default function SignUpForm() {
     setError('');
 
     try {
-      await authClient.signup(formData);
+      await apiClient.signup(formData);
       router.push('/login?message=Account created successfully');
     } catch (err) {
       setError('Failed to create account. Please try again.');
