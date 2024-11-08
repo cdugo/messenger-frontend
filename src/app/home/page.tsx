@@ -3,61 +3,150 @@
 import { useServer } from '../contexts/ServerContext';
 import { Avatar } from "@medusajs/ui";
 import { Message } from '@/app/types/server';
-import { useRef, useState } from 'react';
+import { useRef, useState, useCallback } from 'react';
 import { useEffect } from 'react';
 import { apiClient } from '../api/apiClient';
 import { useUser } from '../contexts/UserContext';
-import { TextBox } from '@/components/TextBox';
+import { ReplyTo, TextBox } from '@/components/TextBox';
 import { websocket } from '@/lib/websocket';
+import { ReplyIcon } from '@/components/icons/ReplyIcon';
+
 interface ChatBubbleGroupProps {
   messages: Message[];
+  getParentMessage: (messageId: number | null) => Message | null;
   isCurrentUser: boolean;
+  setReplyTo: (replyTo: ReplyTo) => void;
 }
 
-function ChatBubbleGroup({ messages, isCurrentUser }: ChatBubbleGroupProps) {
+
+// Component for displaying the parent message reference in a message bubble
+function ParentMessageReference({ parentMessage }: { parentMessage: Message }) {
+  const scrollToParentMessage = () => {
+    const element = document.getElementById(`message-${parentMessage.id}`);
+    element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+
   return (
-    <div className={`flex flex-row ${isCurrentUser ? 'justify-end' : 'justify-start'}`}>
+    <div 
+      className="text-xs flex bg-[#5651bf] px-3 py-2 flex-col text-gray-300 mb-1 cursor-pointer hover:text-gray-300 hover:bg-[#6861e6] border-l pl-2 border-gray-300 rounded-r-md"
+      onClick={scrollToParentMessage}
+    >
+        {parentMessage.user.username}
+      <span className="">
+        {parentMessage.content.slice(0, 50)}
+        {parentMessage.content.length && parentMessage.content.length > 50 ? '...' : ''}
+      </span>
+    </div>
+  );
+}
+
+// Component for the message bubble tail
+function MessageTail({ isCurrentUser }: { isCurrentUser: boolean }) {
+  return (
+    <svg 
+      width="25" 
+      height="25" 
+      viewBox="0 0 14 14" 
+      fill="none" 
+      xmlns="http://www.w3.org/2000/svg"
+      className={`absolute bottom-[0px] z-0 ${isCurrentUser ? 
+        'right-[-4px]' : 
+        'left-[-4px] scale-x-[-1]'}`}
+    >
+      <path 
+        d="M4.34483 11.5C7.09993 13.4023 10.8741 13.9476 13.5903 13.9963C13.695 13.9982 13.7369 13.846 13.6501 13.7874C12.8374 13.2382 11.305 11.8923 9.65517 9.5C7.72414 6.7 7.24138 2 7.24138 0L0 7.5C0.321839 8 1.44828 9.5 4.34483 11.5Z" 
+        fill={isCurrentUser ? "#615BD6" : "#222222"}
+      />
+    </svg>
+  );
+}
+
+
+
+function ChatBubbleGroup({ messages, getParentMessage, isCurrentUser, setReplyTo }: ChatBubbleGroupProps) {
+  return (
+    <div className={`flex flex-row ${isCurrentUser ? 'justify-end' : 'justify-start'} w-full`}>
       {!isCurrentUser && (
         <Avatar 
           fallback={messages[0].user.username[0].toUpperCase()}
           className="w-10 h-10 rounded-full bg-gray-700 text-white self-end mr-2"
         />
       )}
-      <div className="flex flex-col relative">
+      <div className="flex flex-col relative max-w-[30%]">
         <span className={`ml-4 text-xs text-left text-[#7B7B7B] mb-1 ${isCurrentUser ? 'hidden' : ''}`}>
           {messages[0].user.username}
         </span>
-        <div className={`flex flex-col gap-1 ${isCurrentUser ? 'items-end' : 'items-start'}`}>
-          {messages.map((message, index) => (
-            <div key={message.id} className="flex flex-col relative">
-              <div className={`relative flex flex-col min-w-fit max-w-[70%] pl-4 pr-4 py-[6px] 
-                ${isCurrentUser ? 'bg-accent' : 'bg-neutral'}
-                rounded-[20px] transition-colors z-[1]`}
-              >
-                <p className="text-[#EEEEEE] text-base font-normal leading-relaxed">
-                  {message.content}
-                </p>
+        <div className={`flex flex-col gap-1 ${isCurrentUser ? 'items-end' : 'items-start'} w-full`}>
+          {messages.map((message, index) => {
+            const parentMessage = getParentMessage(message.parent_message_id);
+            return (
+              <div key={message.id} className="flex flex-col relative group w-full">
+                <div className="flex items-center gap-2 w-full">
+                  <div 
+                    id={`message-${message.id}`}
+                    className={`relative flex flex-col min-w-fit w-fit max-w-full pl-4 pr-4 py-[6px] 
+                      ${isCurrentUser ? 'bg-accent ml-auto' : 'bg-neutral'}
+                      rounded-[20px] transition-colors z-[1] overflow-hidden`}
+                  >
+                    <p className="text-[#EEEEEE] text-base font-normal leading-relaxed break-all whitespace-pre-wrap">
+                      {parentMessage && <ParentMessageReference parentMessage={parentMessage} />}
+                      {message.content}
+                    </p>
+                  </div>
+                  {!isCurrentUser && (
+                    <button
+                      ref={(button) => {
+                        if (button) {
+                          button.onclick = () => {
+                            const textarea = document.querySelector('textarea');
+                            if (textarea) textarea.focus();
+                          }
+                        }
+                      }}
+                      onClick={() => setReplyTo({
+                        id: message.id,
+                        content: message.content,
+                        username: message.user.username
+                      })}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                    >
+                      <ReplyIcon className="w-4 h-4 text-gray-400 hover:text-white" />
+                    </button>
+                  )}
+                </div>
+                {index === messages.length - 1 && <MessageTail isCurrentUser={isCurrentUser} />}
               </div>
-              {index === messages.length - 1 && (
-                <svg 
-                  width="25" 
-                  height="25" 
-                  viewBox="0 0 14 14" 
-                  fill="none" 
-                  xmlns="http://www.w3.org/2000/svg"
-                  className={`absolute bottom-[0px] z-0 ${isCurrentUser ? 
-                    'right-[-4px]' : 
-                    'left-[-4px] scale-x-[-1]'}`}
-                >
-                  <path 
-                    d="M4.34483 11.5C7.09993 13.4023 10.8741 13.9476 13.5903 13.9963C13.695 13.9982 13.7369 13.846 13.6501 13.7874C12.8374 13.2382 11.305 11.8923 9.65517 9.5C7.72414 6.7 7.24138 2 7.24138 0L0 7.5C0.321839 8 1.44828 9.5 4.34483 11.5Z" 
-                    fill={isCurrentUser ? "#615BD6" : "#222222"}
-                  />
-                </svg>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function NoMessages() {
+  return (
+    <div className="flex flex-col items-center justify-center h-72 w-72">
+      <p className="text-lg text-white">No messages here yet.</p>
+      <p className="text-sm text-gray-400">Send a message to start a conversation!</p>
+    </div>
+  );
+}
+
+function LoadingState() {
+  return (
+    <div className="flex h-screen items-center justify-center text-gray-500">
+      <p className="text-lg">Loading...</p>
+    </div>
+  );
+}
+
+function NoServerSelected() {
+  return (
+    <div className="flex h-screen items-center justify-center text-gray-500">
+      <div className="flex flex-col items-center h-fit w-72 bg-neutral rounded-3xl px-4 py-12 text-center">
+        <p className="text-lg text-white">Open a chat to start a conversation.</p>
+        <p className="text-7xl mt-8 [text-shadow:_0_0_50px_rgba(255,255,255,0.5)]">💬</p>
       </div>
     </div>
   );
@@ -69,9 +158,9 @@ export default function HomePage() {
   const [messages, setMessages] = useState<Message[]>([]);    
   const [isLoading, setIsLoading] = useState(false);
   const [newMessage, setNewMessage] = useState("")
-  const [error, setError] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-
+  const [replyTo, setReplyTo] = useState<ReplyTo | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }
@@ -79,37 +168,6 @@ export default function HomePage() {
   useEffect(() => {
     scrollToBottom()
   }, [messages])
-
-  useEffect(() => {
-    if (!currentServer) return;
-    
-    setIsLoading(true);
-    let isSubscribed = true;
-
-    const setupServer = async () => {
-      try {
-        const serverData = await apiClient.getServer(currentServer.id);
-        if (!serverData || !isSubscribed) return;
-        
-        setMessages(serverData.messages);
-        websocket.subscribeToServer(serverData.id, handleWebSocketMessage);
-        setIsLoading(false);
-      } catch (error) {
-        console.error('Error fetching server:', error);
-        setIsLoading(false);
-      }
-    };
-
-    setupServer();
-
-    // Cleanup function
-    return () => {
-      isSubscribed = false;
-      if (currentServer) {
-        websocket.unsubscribeFromServer(currentServer.id);
-      }
-    };
-  }, [currentServer]);
 
   const handleWebSocketMessage = (data: {
     type: 'message' | 'message_deleted' | 'error';
@@ -119,11 +177,10 @@ export default function HomePage() {
     message_id?: number;
     created_at?: string;
     updated_at?: string;
+    parent_message_id?: number | null;
     user?: { id: number; username: string };
     message?: string;
-  }) => {
-    console.log('Handling WebSocket message:', data);
-        
+  }) => {        
 
     switch (data.type) {
       case 'message':
@@ -134,16 +191,14 @@ export default function HomePage() {
               content: data.content || '',
               user_id: data.user_id || 0,
               created_at: data.created_at || new Date().toISOString(),
-              parent_message_id: null,
+              parent_message_id: data.parent_message_id || null,
               user: { username: data.user?.username || '' },
               server_id: Number(currentServer?.id),
               updated_at: data.updated_at || new Date().toISOString()
           }
-          console.log('Adding new message:', newMessage);
           setMessages(prev => {
             if (!prev) return prev;
             const updatedMessages = [...prev, newMessage];
-            console.log('Updated messages:', updatedMessages);
             return updatedMessages;
           });
         }
@@ -168,43 +223,50 @@ export default function HomePage() {
     }
   }
 
+  useEffect(() => {
+    if (!currentServer) return;
+    
+    setIsLoading(true);
+    let isSubscribed = true;
+
+    const setupServer = async () => {
+      try {
+        const serverData = await apiClient.getServer(currentServer.id);
+        if (!serverData || !isSubscribed) return;
+        
+        setMessages(serverData.messages);
+        websocket.subscribeToServer(serverData.id, handleWebSocketMessage);
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Error fetching server:', error);
+        setIsLoading(false);
+      }
+    };
+
+    setupServer();
+
+    return () => {
+      isSubscribed = false;
+      if (currentServer) {
+        websocket.unsubscribeFromServer(currentServer.id);
+      }
+    };
+  }, [currentServer]);
+
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newMessage.trim()) return
-    if (!currentServer) return;
+    if (!newMessage.trim() || !currentServer) return;
 
-    websocket.sendMessage(currentServer.id, newMessage)
-    setNewMessage("")
+    websocket.sendMessage(currentServer.id, newMessage, replyTo?.id);
+    setNewMessage("");
+    setReplyTo(null);
   }
 
-
-
-  if (!currentServer) {
-    return (
-      <div className="flex h-screen items-center justify-center text-gray-500">
-        <div className="flex flex-col items-center h-fit w-72 bg-neutral rounded-3xl px-4 py-12 text-center">
-            <p className="text-lg text-white">Open a chat to start a conversation.</p>
-            <p className="text-7xl mt-8 [text-shadow:_0_0_50px_rgba(255,255,255,0.5)]">💬</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center text-gray-500">
-        <p className="text-lg">Loading...</p>
-      </div>
-    );
-  }
-
-  // Group messages by user_id and consecutive messages
   const groupMessages = (messages: Message[]) => {
     const groups: Message[][] = [];
     let currentGroup: Message[] = [];
     let currentUserId = -1;
 
-    // Sort messages by creation date
     const sortedMessages = [...messages].sort(
       (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
     );
@@ -225,8 +287,20 @@ export default function HomePage() {
     return groups;
   };
 
+  const getParentMessage = useCallback((messageId: number | null): Message | null => {
+    if (!messageId) return null;
+    // Create map inline to always have latest messages
+    const currentMessageMap = messages.reduce((acc, message) => {
+      acc.set(message.id, message);
+      return acc;
+    }, new Map<number, Message>());
+    return currentMessageMap.get(messageId) || null;
+  }, [messages]);
+
+  if (!currentServer) return <NoServerSelected />;
+  if (isLoading) return <LoadingState />;
+
   const messageGroups = groupMessages(messages || []);
-  console.log('Message groups:', messageGroups);
 
   return (
     <div className="flex flex-col h-screen bg-background">
@@ -239,15 +313,15 @@ export default function HomePage() {
               <ChatBubbleGroup
                 key={messageGroup[0].id}
                 messages={messageGroup}
+                getParentMessage={getParentMessage}
                 isCurrentUser={messageGroup[0].user_id.toString() === user?.id.toString()}
+                setReplyTo={setReplyTo}
               />
             ))}
+            <div ref={messagesEndRef} />
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center h-72 w-72">
-            <p className="text-lg text-white">No messages here yet.</p>
-            <p className="text-sm text-gray-400">Send a message to start a conversation!</p>
-          </div>
+          <NoMessages />
         )}
       </div>
       <div className="sticky bottom-0 w-full pb-4 px-4">
@@ -255,6 +329,8 @@ export default function HomePage() {
           value={newMessage}
           onChange={setNewMessage}
           onSubmit={handleSendMessage}
+          replyTo={replyTo}
+          setReplyTo={setReplyTo}
         />
       </div>
     </div>

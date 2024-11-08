@@ -1,16 +1,62 @@
-import { Input } from "@medusajs/ui";
-
 interface TextBoxProps {
     value: string;
     onChange: (value: string) => void;
     onSubmit: (e: React.FormEvent) => void;
+    replyTo: ReplyTo | null;
+    setReplyTo: (replyTo: ReplyTo | null) => void;
 }
+
+export interface ReplyTo {
+    id: number;
+    content: string;
+    username: string;
+  }
+
+
+  // Component for the reply preview
+function ReplyPreview({ replyTo, onClose }: { replyTo: ReplyTo, onClose: () => void }) {
+    return (
+      <div className="bg-neutral border-l-2 border-white/20 rounded-r-lg p-2 mt-2 mb-1 w-fit flex justify-between items-start gap-2 group">
+        <div className="flex flex-col">
+          <span className="text-sm text-gray-400">
+            <span className="text-white">{replyTo.username}</span>
+          </span>
+          <span className="text-xs text-gray-500">
+            {replyTo.content.slice(0, 50)}
+            {replyTo.content.length > 50 ? '...' : ''}
+          </span>
+        </div>
+        <button 
+          onClick={onClose}
+          className="relative text-gray-400 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"
+        >
+          ×
+        </button>
+      </div>
+    );
+  }
   
-export function TextBox({ value, onChange, onSubmit }: TextBoxProps) {
+  
+export function TextBox({ value, onChange, onSubmit, replyTo, setReplyTo }: TextBoxProps) {
   const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
       onSubmit(event);
+      return;
+    }
+
+    // Handle backspace behavior for reply
+    if (event.key === 'Backspace' && replyTo) {
+      const textarea = event.currentTarget;
+      
+      // If cursor is at the start and there's no text selected
+      if (textarea.selectionStart === 0 && textarea.selectionEnd === 0) {
+        if (value === '') {
+          // If the textarea is empty, remove the reply
+          event.preventDefault();
+          setReplyTo(null);
+        }
+      }
     }
   };
 
@@ -18,32 +64,37 @@ export function TextBox({ value, onChange, onSubmit }: TextBoxProps) {
   const maxHeight = lineHeight * 5;
 
   return (
-    <form onSubmit={onSubmit} className="flex flex-row items-center justify-between w-full min-h-[56px] rounded-[100px] bg-[#191919] border border-white/20 px-4">
+    <form onSubmit={onSubmit} className="flex flex-col w-full">
+      <div className="flex flex-row items-center justify-between w-full min-h-[56px] rounded-[100px] bg-[#191919] border border-white/20 px-4">
         <div className="flex flex-row items-center w-full">
           <div className="bg-[#2A2A2A] rounded-full p-2 w-8 h-8 flex items-center justify-center mr-3 shrink-0">
               <PlusIcon />
           </div>
-          <textarea 
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className="w-full my-3 pr-4 bg-transparent focus:outline-none border-none resize-none text-white
-              scrollbar-thin scrollbar-thumb-[#3A3A3A] hover:scrollbar-thumb-[#404040] scrollbar-track-transparent"
-            placeholder="Type a message..."
-            rows={1}
-            style={{
-              minHeight: '24px',
-              maxHeight: `${maxHeight}px`,
-              overflowY: 'auto',
-              lineHeight: `${lineHeight}px`
-            }}
-            onInput={(e) => {
-              const target = e.target as HTMLTextAreaElement;
-              target.style.height = 'auto';
-              const newHeight = Math.min(target.scrollHeight, maxHeight);
-              target.style.height = `${newHeight}px`;
-            }}
-          />
+          <div className="flex flex-col w-full items-start">
+            {replyTo && <ReplyPreview replyTo={replyTo} onClose={() => setReplyTo(null)} />}
+
+            <textarea 
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              onKeyDown={handleKeyDown}
+              className="w-full my-3 pr-4 bg-transparent focus:outline-none border-none resize-none text-white
+                scrollbar-thin scrollbar-thumb-[#3A3A3A] hover:scrollbar-thumb-[#404040] scrollbar-track-transparent"
+              placeholder="Type a message..."
+              rows={1}
+              style={{
+                minHeight: '24px',
+                maxHeight: `${maxHeight}px`,
+                overflowY: 'auto',
+                lineHeight: `${lineHeight}px`
+              }}
+              onInput={(e) => {
+                const target = e.target as HTMLTextAreaElement;
+                target.style.height = 'auto';
+                const newHeight = Math.min(target.scrollHeight, maxHeight);
+                target.style.height = `${newHeight}px`;
+              }}
+            />
+          </div>
         </div>
         <button 
           type="submit"
@@ -51,6 +102,7 @@ export function TextBox({ value, onChange, onSubmit }: TextBoxProps) {
         >
             <SendIcon />
         </button>
+      </div>
     </form>
   );
 }
