@@ -20,7 +20,7 @@ interface ChatBubbleGroupProps {
 
 
 // Component for displaying the parent message reference in a message bubble
-function ParentMessageReference({ parentMessage }: { parentMessage: Message }) {
+function ParentMessageReference({ parentMessage, isCurrentUser }: { parentMessage: Message, isCurrentUser: boolean }) {
   const scrollToParentMessage = () => {
     const element = document.getElementById(`message-${parentMessage.id}`);
     element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -28,10 +28,15 @@ function ParentMessageReference({ parentMessage }: { parentMessage: Message }) {
 
   return (
     <div 
-      className="text-xs flex bg-[#5651bf] px-3 py-2 flex-col text-gray-300 mb-1 cursor-pointer hover:text-gray-300 hover:bg-[#6861e6] border-l pl-2 border-gray-300 rounded-r-md"
+      className={`text-xs flex px-3 py-2 flex-col text-gray-300 mb-1 cursor-pointer hover:text-gray-300 
+        ${isCurrentUser ? 
+          'bg-[#5651bf] hover:bg-[#6861e6]' : 
+          'bg-[#2A2A2A] hover:bg-[#3A3A3A]'
+        } 
+        border-l pl-2 border-gray-300 rounded-r-md`}
       onClick={scrollToParentMessage}
     >
-        {parentMessage.user.username}
+      {parentMessage.user.username}
       <span className="">
         {parentMessage.content.slice(0, 50)}
         {parentMessage.content.length && parentMessage.content.length > 50 ? '...' : ''}
@@ -89,7 +94,12 @@ function ChatBubbleGroup({ messages, getParentMessage, isCurrentUser, setReplyTo
                       rounded-[20px] transition-colors z-[1] overflow-hidden`}
                   >
                     <p className="text-[#EEEEEE] text-base font-normal leading-relaxed break-all whitespace-pre-wrap">
-                      {parentMessage && <ParentMessageReference parentMessage={parentMessage} />}
+                      {parentMessage && (
+                        <ParentMessageReference 
+                          parentMessage={parentMessage} 
+                          isCurrentUser={isCurrentUser}
+                        />
+                      )}
                       {message.content}
                     </p>
                   </div>
@@ -324,7 +334,7 @@ export default function HomePage() {
           <NoMessages />
         )}
       </div>
-      <div className="sticky bottom-0 w-full pb-4 px-4">
+      <div className="sticky bottom-0 w-full  bg-[#191919]">
         <TextBox 
           value={newMessage}
           onChange={setNewMessage}

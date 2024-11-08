@@ -1,3 +1,5 @@
+import { DeleteIcon } from "./icons/DeleteIcon";
+
 interface TextBoxProps {
     value: string;
     onChange: (value: string) => void;
@@ -16,21 +18,21 @@ export interface ReplyTo {
   // Component for the reply preview
 function ReplyPreview({ replyTo, onClose }: { replyTo: ReplyTo, onClose: () => void }) {
     return (
-      <div className="bg-neutral border-l-2 border-white/20 rounded-r-lg p-2 mt-2 mb-1 w-fit flex justify-between items-start gap-2 group">
+      <div className="border-l-2 border-[#A39EFF] rounded-r-lg px-2 w-full flex justify-between items-start">
         <div className="flex flex-col">
           <span className="text-sm text-gray-400">
-            <span className="text-white">{replyTo.username}</span>
+            <span className="text-[#A39EFF] font-medium text-sm">Reply to {replyTo.username}</span>
           </span>
-          <span className="text-xs text-gray-500">
+          <span className="text-xs text-[#B4B4B4]">
             {replyTo.content.slice(0, 50)}
             {replyTo.content.length > 50 ? '...' : ''}
           </span>
         </div>
         <button 
           onClick={onClose}
-          className="relative text-gray-400 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"
+          className="text-white hover:opacity-70"
         >
-          ×
+          <DeleteIcon />
         </button>
       </div>
     );
@@ -44,20 +46,6 @@ export function TextBox({ value, onChange, onSubmit, replyTo, setReplyTo }: Text
       onSubmit(event);
       return;
     }
-
-    // Handle backspace behavior for reply
-    if (event.key === 'Backspace' && replyTo) {
-      const textarea = event.currentTarget;
-      
-      // If cursor is at the start and there's no text selected
-      if (textarea.selectionStart === 0 && textarea.selectionEnd === 0) {
-        if (value === '') {
-          // If the textarea is empty, remove the reply
-          event.preventDefault();
-          setReplyTo(null);
-        }
-      }
-    }
   };
 
   const lineHeight = 24;
@@ -65,21 +53,28 @@ export function TextBox({ value, onChange, onSubmit, replyTo, setReplyTo }: Text
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col w-full">
-      <div className="flex flex-row items-center justify-between w-full min-h-[56px] rounded-[100px] bg-[#191919] border border-white/20 px-4">
-        <div className="flex flex-row items-center w-full">
-          <div className="bg-[#2A2A2A] rounded-full p-2 w-8 h-8 flex items-center justify-center mr-3 shrink-0">
+        {replyTo && (
+            <div className="p-[10px] ">
+                <ReplyPreview replyTo={replyTo} onClose={() => setReplyTo(null)} />
+            </div>
+        )}
+
+    <div className="flex flex-row border-t border-white/20 py-[10px] px-[10px]">
+        <div className="bg-[#2A2A2A] rounded-full p-2 w-8 h-8 flex items-center justify-center mr-[10px] self-center">
               <PlusIcon />
           </div>
-          <div className="flex flex-col w-full items-start">
-            {replyTo && <ReplyPreview replyTo={replyTo} onClose={() => setReplyTo(null)} />}
 
-            <textarea 
+      <div className="flex flex-row items-center justify-between w-full min-h-[40px] rounded-[100px] bg-black/25 border border-white/20 px-4">
+        <div className="flex flex-row items-center w-full">
+          <div className="flex flex-col w-full items-start">
+            <textarea
+              autoFocus
               value={value}
               onChange={(e) => onChange(e.target.value)}
               onKeyDown={handleKeyDown}
               className="w-full my-3 pr-4 bg-transparent focus:outline-none border-none resize-none text-white
                 scrollbar-thin scrollbar-thumb-[#3A3A3A] hover:scrollbar-thumb-[#404040] scrollbar-track-transparent"
-              placeholder="Type a message..."
+              placeholder="Write a message..."
               rows={1}
               style={{
                 minHeight: '24px',
@@ -103,6 +98,8 @@ export function TextBox({ value, onChange, onSubmit, replyTo, setReplyTo }: Text
             <SendIcon />
         </button>
       </div>
+      </div>
+
     </form>
   );
 }
