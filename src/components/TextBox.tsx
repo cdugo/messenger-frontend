@@ -18,7 +18,7 @@ export function TextBox({ value, onChange, onSubmit }: TextBoxProps) {
   const maxHeight = lineHeight * 5;
 
   return (
-    <form onSubmit={onSubmit} className="flex flex-row items-center justify-between w-full min-h-[56px] rounded-[100px] bg-[#191919] px-4">
+    <form onSubmit={onSubmit} className="flex flex-row items-center justify-between w-full min-h-[56px] rounded-[100px] bg-[#191919] border border-white/20 px-4">
         <div className="flex flex-row items-center w-full">
           <div className="bg-[#2A2A2A] rounded-full p-2 w-8 h-8 flex items-center justify-center mr-3 shrink-0">
               <PlusIcon />
