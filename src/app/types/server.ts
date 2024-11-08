@@ -1,6 +1,6 @@
 import { User } from "./user";
 
-export type Message = {
+export interface Message {
     id: number;
     content: string;
     user_id: number;
@@ -8,6 +8,7 @@ export type Message = {
     parent_message_id: number | null;
     created_at: string;
     updated_at: string;
+    parent_message?: Message;
     user: {
         username: string;
     };

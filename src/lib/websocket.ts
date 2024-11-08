@@ -64,7 +64,7 @@ class WebSocketClient {
     }
   }
 
-  sendMessage(serverId: string, content: string, parentId?: number): void {
+  sendMessage(serverId: string, content: string, parentMessageId?: number): void {
     const subscription = this.subscriptions.get(serverId);
     if (!subscription) {
       console.error('No subscription found for server:', serverId);
@@ -75,7 +75,7 @@ class WebSocketClient {
       action: 'create',
       server_id: Number(serverId),
       content,
-      parent_id: parentId || null
+      parent_message_id: parentMessageId || null
     });
   }
 
