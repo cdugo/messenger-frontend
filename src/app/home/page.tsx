@@ -230,7 +230,7 @@ export default function HomePage() {
 
   return (
     <div className="flex flex-col h-screen bg-background">
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto p-4 pr-5">
         <h1 className="text-2xl font-bold mb-4 text-white">{currentServer.name}</h1>
         
         {messageGroups.length > 0 ? (
