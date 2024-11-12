@@ -1,7 +1,7 @@
 'use client';
 
 import { useServer } from '../contexts/ServerContext';
-import { Avatar } from "@medusajs/ui";
+import { Avatar, Popover } from "@medusajs/ui";
 import { Message } from '@/app/types/server';
 import { useRef, useState, useCallback } from 'react';
 import { useEffect } from 'react';
@@ -10,14 +10,54 @@ import { useUser } from '../contexts/UserContext';
 import { ReplyTo, TextBox } from '@/components/TextBox';
 import { websocket } from '@/lib/websocket';
 import { ReplyIcon } from '@/components/icons/ReplyIcon';
+import { User } from '../types/user';
+import { UserTag } from '@/components/UserTag';
 
 interface ChatBubbleGroupProps {
   messages: Message[];
   getParentMessage: (messageId: number | null) => Message | null;
   isCurrentUser: boolean;
   setReplyTo: (replyTo: ReplyTo) => void;
+  users: User[];
 }
 
+function formatMessageContent(content: string, users: User[], isCurrentUser: boolean) {
+  const mentionRegex = /@(\w+)/g;
+  const parts = [];
+  let lastIndex = 0;
+  let match;
+
+  while ((match = mentionRegex.exec(content)) !== null) {
+    // Add text before the mention
+    if (match.index > lastIndex) {
+      parts.push(content.slice(lastIndex, match.index));
+    }
+
+    const username = match[1];
+    const isValidUser = users.some(user => user.username === username) || username === 'everyone';
+    
+    if (isValidUser) {
+      parts.push(
+        <UserTag 
+          key={`${match.index}-${username}`} 
+          username={username} 
+          isCurrentUser={isCurrentUser} 
+        />
+      );
+    } else {
+      parts.push(match[0]); // Keep as plain text if user doesn't exist
+    }
+
+    lastIndex = match.index + match[0].length;
+  }
+
+  // Add remaining text
+  if (lastIndex < content.length) {
+    parts.push(content.slice(lastIndex));
+  }
+
+  return parts;
+}
 
 // Component for displaying the parent message reference in a message bubble
 function ParentMessageReference({ parentMessage, isCurrentUser }: { parentMessage: Message, isCurrentUser: boolean }) {
@@ -68,9 +108,9 @@ function MessageTail({ isCurrentUser }: { isCurrentUser: boolean }) {
 
 
 
-function ChatBubbleGroup({ messages, getParentMessage, isCurrentUser, setReplyTo }: ChatBubbleGroupProps) {
+function ChatBubbleGroup({ messages, getParentMessage, isCurrentUser, setReplyTo, users }: ChatBubbleGroupProps) {
   return (
-    <div className={`flex flex-row ${isCurrentUser ? 'justify-end' : 'justify-start'} w-full`}>
+    <div className={`flex flex-row ${isCurrentUser ? 'justify-end' : 'justify-start'} w-full relative z-0`}>
       {!isCurrentUser && (
         <Avatar 
           fallback={messages[0].user.username[0].toUpperCase()}
@@ -93,15 +133,15 @@ function ChatBubbleGroup({ messages, getParentMessage, isCurrentUser, setReplyTo
                       ${isCurrentUser ? 'bg-accent ml-auto' : 'bg-neutral'}
                       rounded-[20px] transition-colors z-[1] overflow-hidden`}
                   >
-                    <p className="text-[#EEEEEE] text-base font-normal leading-relaxed break-all whitespace-pre-wrap">
+                    <div className="text-[#EEEEEE] text-base font-normal leading-relaxed break-all whitespace-pre-wrap">
                       {parentMessage && (
                         <ParentMessageReference 
                           parentMessage={parentMessage} 
                           isCurrentUser={isCurrentUser}
                         />
                       )}
-                      {message.content}
-                    </p>
+                      {formatMessageContent(message.content, users, isCurrentUser)}
+                    </div>
                   </div>
                   {!isCurrentUser && (
                     <button
@@ -174,6 +214,7 @@ export default function HomePage() {
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }
+  const [users, setUsers] = useState<User[]>([]);
 
   useEffect(() => {
     scrollToBottom()
@@ -245,6 +286,7 @@ export default function HomePage() {
         if (!serverData || !isSubscribed) return;
         
         setMessages(serverData.messages);
+        setUsers(serverData.users);
         websocket.subscribeToServer(serverData.id, handleWebSocketMessage);
         setIsLoading(false);
       } catch (error) {
@@ -326,6 +368,7 @@ export default function HomePage() {
                 getParentMessage={getParentMessage}
                 isCurrentUser={messageGroup[0].user_id.toString() === user?.id.toString()}
                 setReplyTo={setReplyTo}
+                users={users}
               />
             ))}
             <div ref={messagesEndRef} />
@@ -341,6 +384,7 @@ export default function HomePage() {
           onSubmit={handleSendMessage}
           replyTo={replyTo}
           setReplyTo={setReplyTo}
+          users={users}
         />
       </div>
     </div>

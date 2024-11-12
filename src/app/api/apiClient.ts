@@ -1,4 +1,4 @@
-import { MeResponse, Server, ServerWithMessages } from '../types/server';
+import { MeResponse, ServerWithMessagesAndUsers } from '../types/server';
 import { LoginCredentials, User } from '../types/user';
 
 interface SignUpCredentials {
@@ -50,7 +50,7 @@ class APIClient {
     }
   }
 
-  async getServer(id: string): Promise<ServerWithMessages | null> {
+  async getServer(id: string): Promise<ServerWithMessagesAndUsers | null> {
     try {
       const response = await fetch(`${this.baseUrl}/servers/${id}`, {
         credentials: 'include',

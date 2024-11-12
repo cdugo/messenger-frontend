@@ -29,6 +29,7 @@ export type MeResponse = {
     servers: Server[];
 }
 
-export type ServerWithMessages = Server & {
+export type ServerWithMessagesAndUsers = Server & {
     messages: Message[];
+    users: User[];
 }

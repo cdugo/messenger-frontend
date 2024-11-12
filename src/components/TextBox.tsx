@@ -1,4 +1,8 @@
+import { useState, useRef, forwardRef } from "react";
 import { DeleteIcon } from "./icons/DeleteIcon";
+import { User } from "@/app/types/user";
+import { Command } from "@medusajs/ui";
+import { Avatar } from "@medusajs/ui";
 
 interface TextBoxProps {
     value: string;
@@ -6,6 +10,7 @@ interface TextBoxProps {
     onSubmit: (e: React.FormEvent) => void;
     replyTo: ReplyTo | null;
     setReplyTo: (replyTo: ReplyTo | null) => void;
+    users: User[];
 }
 
 export interface ReplyTo {
@@ -39,69 +44,317 @@ function ReplyPreview({ replyTo, onClose }: { replyTo: ReplyTo, onClose: () => v
   }
   
   
-export function TextBox({ value, onChange, onSubmit, replyTo, setReplyTo }: TextBoxProps) {
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (event.key === 'Enter' && !event.shiftKey) {
-      event.preventDefault();
-      onSubmit(event);
-      return;
-    }
-  };
+interface MentionsDropdownProps {
+    users: User[];
+    mentionInput: string;
+    onSelect: (username: string) => void;
+    selectedIndex: number;
+    onKeyNavigation: (direction: 'up' | 'down') => void;
+}
 
-  const lineHeight = 24;
-  const maxHeight = lineHeight * 5;
+function MentionsDropdown({ users, mentionInput, onSelect, selectedIndex }: MentionsDropdownProps) {
+    const filteredUsers = users.filter(user => 
+        user.username.toLowerCase().includes(mentionInput.toLowerCase())
+    );
 
-  return (
-    <form onSubmit={onSubmit} className="flex flex-col w-full">
-        {replyTo && (
-            <div className="p-[10px] ">
-                <ReplyPreview replyTo={replyTo} onClose={() => setReplyTo(null)} />
-            </div>
-        )}
+    const totalItems = filteredUsers.length + 1;
+    const isEveryoneSelected = selectedIndex === filteredUsers.length;
 
-    <div className="flex flex-row border-t border-white/20 py-[10px] px-[10px]">
-        <div className="bg-[#2A2A2A] rounded-full p-2 w-8 h-8 flex items-center justify-center mr-[10px] self-center">
-              <PlusIcon />
-          </div>
-
-      <div className="flex flex-row items-center justify-between w-full min-h-[40px] rounded-[100px] bg-black/25 border border-white/20 px-4">
-        <div className="flex flex-row items-center w-full">
-          <div className="flex flex-col w-full items-start">
-            <textarea
-              autoFocus
-              value={value}
-              onChange={(e) => onChange(e.target.value)}
-              onKeyDown={handleKeyDown}
-              className="w-full my-3 pr-4 bg-transparent focus:outline-none border-none resize-none text-white
-                scrollbar-thin scrollbar-thumb-[#3A3A3A] hover:scrollbar-thumb-[#404040] scrollbar-track-transparent"
-              placeholder="Write a message..."
-              rows={1}
-              style={{
-                minHeight: '24px',
-                maxHeight: `${maxHeight}px`,
-                overflowY: 'auto',
-                lineHeight: `${lineHeight}px`
-              }}
-              onInput={(e) => {
-                const target = e.target as HTMLTextAreaElement;
-                target.style.height = 'auto';
-                const newHeight = Math.min(target.scrollHeight, maxHeight);
-                target.style.height = `${newHeight}px`;
-              }}
-            />
-          </div>
-        </div>
-        <button 
-          type="submit"
-          className="hover:opacity-70 cursor-pointer ml-3 shrink-0 bg-transparent border-0 p-0"
+    return (
+        <div className="absolute bottom-full left-0 min-w-[358px] bg-[#191919] rounded-t-xl 
+            border border-white/[0.13] backdrop-blur-[32px] shadow-[0px_6px_10px_0px_rgba(0,0,0,0.05)]
+            z-[99999] overflow-hidden"
         >
-            <SendIcon />
-        </button>
-      </div>
-      </div>
+            <Command className="border-none bg-transparent w-full">
+                <div className="max-h-[454px] w-full overflow-y-auto
+                    scrollbar-thin scrollbar-thumb-[#3A3A3A] hover:scrollbar-thumb-[#404040] scrollbar-track-transparent"
+                >
+                    <div className="px-3 py-2 text-sm text-[#7B7B7B]">Users</div>
+                    {filteredUsers.map((user, index) => (
+                        <div
+                            key={user.id}
+                            className={`px-3 py-2 cursor-pointer transition-colors w-full ${
+                                index === selectedIndex ? 'bg-[#FFFFFF1B]' : 'hover:bg-[#FFFFFF1B]'
+                            }`}
+                            onClick={() => onSelect(user.username)}
+                        >
+                            <div className="flex items-center gap-2">
+                                <Avatar 
+                                    fallback={user.username[0].toUpperCase()}
+                                    className="w-6 h-6 rounded-full bg-gray-700 text-white text-sm"
+                                />
+                                <span className="text-[#EEEEEE] text-sm">{user.username}</span>
+                            </div>
+                        </div>
+                    ))}
+                    <div className="px-3 py-2 text-sm text-[#7B7B7B] mt-2">Tag Everyone</div>
+                    <div
+                        className={`px-3 py-2 cursor-pointer transition-colors w-full ${
+                            isEveryoneSelected ? 'bg-[#FFFFFF1B]' : 'hover:bg-[#FFFFFF1B]'
+                        }`}
+                        onClick={() => onSelect('everyone')}
+                    >
+                        <div className="flex items-center gap-2">
+                            <Avatar 
+                                fallback="@"
+                                className="w-6 h-6 rounded-full bg-gray-700 text-white text-sm"
+                            />
+                            <span className="text-[#EEEEEE] text-sm">everyone</span>
+                        </div>
+                    </div>
+                </div>
+            </Command>
+        </div>
+    );
+}
 
-    </form>
-  );
+// Modify the StyledTextarea to use forwardRef
+const StyledTextarea = forwardRef<
+    HTMLTextAreaElement,
+    React.TextareaHTMLAttributes<HTMLTextAreaElement> & { users: User[] }
+>(({ value, users, ...props }, ref) => {
+    const textValue = String(value || '');
+    
+    // Helper function to check if a username exists
+    const isValidUsername = (username: string): boolean => {
+        return username.slice(1) === 'everyone' || users.some(user => user.username === username.slice(1));
+    };
+    
+    return (
+        <div className="relative w-full flex items-center min-h-[40px]">
+            <div 
+                aria-hidden="true"
+                className="absolute inset-0 flex items-center pointer-events-none break-words whitespace-pre-wrap"
+            >
+                {textValue.split(/(?<=\s)|(?=\s)/).map((word: string, index: number) => {
+                    const isMention = word.startsWith('@') && word.length > 1;
+                    const isValid = isMention && isValidUsername(word);
+                    
+                    if (isValid) {
+                        return (
+                            <span key={index}>
+                                <span className="bg-[#5D55FE3B] text-[#A39EFF]">{word}</span>
+                            </span>
+                        );
+                    }
+                    return <span key={index}>{word}</span>;
+                })}
+            </div>
+            <textarea
+                ref={ref}
+                {...props}
+                value={value}
+                className="w-full bg-transparent focus:outline-none border-none resize-none text-white
+                    scrollbar-thin scrollbar-thumb-[#3A3A3A] hover:scrollbar-thumb-[#404040] scrollbar-track-transparent"
+            />
+        </div>
+    );
+});
+
+// Add display name for better debugging
+StyledTextarea.displayName = 'StyledTextarea';
+
+export function TextBox({ value, onChange, onSubmit, replyTo, setReplyTo, users }: TextBoxProps) {
+    const [showMentions, setShowMentions] = useState(false);
+    const [mentionInput, setMentionInput] = useState("");
+    const [cursorPosition, setCursorPosition] = useState(0);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const [selectedUserIndex, setSelectedUserIndex] = useState(0);
+
+    const getFilteredUsers = (input: string) => {
+        return users.filter(user => 
+            user.username.toLowerCase().includes(input.toLowerCase())
+        );
+    };
+
+    const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        if (showMentions) {
+            const filteredUsers = getFilteredUsers(mentionInput);
+            const totalItems = filteredUsers.length + 1;
+            
+            switch (event.key) {
+                case 'Enter':
+                    event.preventDefault();
+                    if (selectedUserIndex === filteredUsers.length) {
+                        handleMentionSelect('everyone');
+                    } else if (filteredUsers.length > 0) {
+                        handleMentionSelect(filteredUsers[selectedUserIndex].username);
+                    }
+                    return;
+                case 'ArrowUp':
+                    event.preventDefault();
+                    setSelectedUserIndex(prev => 
+                        prev > 0 ? prev - 1 : totalItems - 1
+                    );
+                    return;
+                case 'ArrowDown':
+                    event.preventDefault();
+                    setSelectedUserIndex(prev => 
+                        prev < totalItems - 1 ? prev + 1 : 0
+                    );
+                    return;
+                case 'Escape':
+                    setShowMentions(false);
+                    setMentionInput("");
+                    setSelectedUserIndex(0);
+                    return;
+            }
+        }
+
+        if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault();
+            onSubmit(event);
+            return;
+        }
+
+        if (event.key === '@') {
+            setShowMentions(true);
+            setMentionInput("");
+            setCursorPosition(event.currentTarget.selectionStart);
+        }
+
+        if (event.key === 'Backspace' && showMentions) {
+            const cursorPos = event.currentTarget.selectionStart;
+            const textBeforeCursor = event.currentTarget.value.slice(0, cursorPos);
+            const lastAtPos = textBeforeCursor.lastIndexOf('@');
+            
+            // Check if we're deleting the @ symbol
+            if (cursorPos - 1 === lastAtPos) {
+                setShowMentions(false);
+                setMentionInput("");
+            }
+        }
+    };
+
+    const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        const newValue = e.target.value;
+        onChange(newValue);
+
+        if (showMentions) {
+            const lastAtPos = newValue.lastIndexOf('@');
+            if (lastAtPos >= 0) {
+                const afterAt = newValue.slice(lastAtPos + 1);
+                
+                // Close dropdown if space is detected right after @
+                if (afterAt.startsWith(' ')) {
+                    setShowMentions(false);
+                    setMentionInput("");
+                    setSelectedUserIndex(0);
+                    return;
+                }
+                
+                setMentionInput(afterAt);
+                
+                // Check if there are any matching users
+                const hasMatches = getFilteredUsers(afterAt).length > 0;
+                setShowMentions(hasMatches);
+            }
+        } else {
+            // If dropdown is closed but we find an @ with matching results, show dropdown
+            const lastAtPos = newValue.lastIndexOf('@');
+            if (lastAtPos >= 0) {
+                const afterAt = newValue.slice(lastAtPos + 1);
+                if (!afterAt.includes(' ')) {  // Only if there's no space after @
+                    const hasMatches = getFilteredUsers(afterAt).length > 0;
+                    if (hasMatches) {
+                        setShowMentions(true);
+                        setMentionInput(afterAt);
+                        setCursorPosition(lastAtPos);
+                    }
+                }
+            }
+        }
+    };
+
+    const handleMentionSelect = (username: string) => {
+        if (textareaRef.current) {
+            const beforeMention = value.slice(0, cursorPosition);
+            const afterMention = value.slice(textareaRef.current.selectionEnd);
+            const newValue = `${beforeMention}@${username} ${afterMention}`;
+            onChange(newValue);
+            setShowMentions(false);
+            setMentionInput("");
+            setSelectedUserIndex(0);
+            
+            // Set focus back to textarea
+            textareaRef.current.focus();
+        }
+    };
+
+    const lineHeight = 24;
+    const maxHeight = lineHeight * 5;
+
+    return (
+        <form onSubmit={onSubmit} className="flex flex-col w-full relative z-50">
+            {replyTo && (
+                <div className="p-[10px]">
+                    <ReplyPreview replyTo={replyTo} onClose={() => setReplyTo(null)} />
+                </div>
+            )}
+
+            <div className="flex flex-row border-t border-white/20 py-[10px] px-[10px]">
+                <div className="bg-[#2A2A2A] rounded-full p-2 w-8 h-8 flex items-center justify-center mr-[10px] self-center">
+                    <PlusIcon />
+                </div>
+
+                <div className="flex flex-row items-center justify-between w-full min-h-[40px] rounded-[100px] bg-black/25 border border-white/20 px-4">
+                    <div className="flex flex-row items-center w-full">
+                        <div className="flex flex-col w-full items-start relative">
+                            <StyledTextarea
+                                ref={textareaRef}
+                                autoFocus
+                                value={value}
+                                users={users}
+                                onChange={handleInput}
+                                onKeyDown={handleKeyDown}
+                                placeholder="Write a message..."
+                                rows={1}
+                                style={{
+                                    minHeight: '24px',
+                                    maxHeight: `${maxHeight}px`,
+                                    overflowY: 'auto',
+                                    lineHeight: `${lineHeight}px`
+                                }}
+                                onInput={(e) => {
+                                    const target = e.target as HTMLTextAreaElement;
+                                    target.style.height = 'auto';
+                                    const newHeight = Math.min(target.scrollHeight, maxHeight);
+                                    target.style.height = `${newHeight}px`;
+                                }}
+                            />
+                            
+                            {showMentions && (
+                                <MentionsDropdown 
+                                    users={users}
+                                    mentionInput={mentionInput}
+                                    onSelect={handleMentionSelect}
+                                    selectedIndex={selectedUserIndex}
+                                    onKeyNavigation={(direction) => {
+                                        const filteredUsers = getFilteredUsers(mentionInput);
+                                        if (direction === 'up') {
+                                            setSelectedUserIndex(prev => 
+                                                prev > 0 ? prev - 1 : filteredUsers.length - 1
+                                            );
+                                        } else {
+                                            setSelectedUserIndex(prev => 
+                                                prev < filteredUsers.length - 1 ? prev + 1 : 0
+                                            );
+                                        }
+                                    }}
+                                />
+                            )}
+                        </div>
+                    </div>
+                    <button 
+                        type="submit"
+                        className="hover:opacity-70 cursor-pointer ml-3 shrink-0 bg-transparent border-0 p-0"
+                    >
+                        <SendIcon />
+                    </button>
+                </div>
+            </div>
+        </form>
+    );
 }
 
 function PlusIcon() {
