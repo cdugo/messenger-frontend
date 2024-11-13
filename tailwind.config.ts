@@ -20,9 +20,18 @@ const config: Config = {
                 border: "hsl(var(--border))",
                 input: "hsl(var(--input))",
                 ring: "hsl(var(--ring))",
-                background: "hsl(var(--background))",
+                background: {
+                    DEFAULT: "hsl(var(--background))",
+                    overlay: 'rgba(0, 0, 0, 0.25)', // black/25
+                },
                 foreground: "hsl(var(--foreground))",
-                neutral: "hsl(var(--neutral))",
+                neutral: {
+                    DEFAULT: "hsl(var(--neutral))",
+                    primary: '#2A2A2A',
+                    secondary: '#191919',
+                    border: 'rgba(255, 255, 255, 0.13)', // white/[0.13]
+                    hover: '#FFFFFF1B',  // white/[0.17]
+                },
                 primary: {
                     DEFAULT: "hsl(var(--primary))",
                     foreground: "hsl(var(--primary-foreground))",
@@ -42,6 +51,9 @@ const config: Config = {
                 accent: {
                     DEFAULT: "hsl(var(--accent))",
                     foreground: "hsl(var(--accent-foreground))",
+                    primary: '#5D55FE',
+                    light: '#A39EFF',
+                    bg: '#5D55FE3B',
                 },
                 popover: {
                     DEFAULT: "hsl(var(--popover))",
@@ -51,6 +63,14 @@ const config: Config = {
                     DEFAULT: "hsl(var(--card))",
                     foreground: "hsl(var(--card-foreground))",
                 },
+                text: {
+                    primary: '#EEEEEE',
+                    secondary: '#7B7B7B',
+                    tertiary: '#B4B4B4',
+                },
+                borders: {  // renamed from 'border' to 'borders' to avoid conflict
+                    light: 'rgba(255, 255, 255, 0.2)', // white/20
+                },
             },
             borderRadius: {
                 lg: "var(--radius)",
@@ -59,6 +79,7 @@ const config: Config = {
             },
         },
     },
+    
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     plugins: [require("tailwindcss-animate"), require('tailwind-scrollbar')],
 };
