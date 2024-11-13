@@ -10,9 +10,9 @@ export function UserTag({ username, isCurrentUser }: UserTagProps) {
         <div className="flex items-center gap-3">
             <Avatar 
                 fallback={username[0].toUpperCase()}
-                className="w-8 h-8 rounded-full bg-gray-700 text-white"
+                className="w-8 h-8 rounded-full bg-neutral-primary text-text-primary"
             />
-            <span className="text-white text-sm">
+            <span className="text-text-primary text-sm">
                 {username}
             </span>
         </div>
@@ -24,11 +24,11 @@ export function UserTag({ username, isCurrentUser }: UserTagProps) {
             <span 
                 className={`inline-flex items-center px-1 py-[1px] rounded-[6px] 
                     ${isCurrentUser ? 
-                        'bg-white/[0.17] text-white' : 
-                        'bg-[#5D55FE3B] text-[#A39EFF]'
+                        'bg-neutral-hover text-text-primary' : 
+                        'bg-accent-bg text-accent-light'
                     }`}
             >
-                @{username}
+                @everyone
             </span>
         );
     }
@@ -37,13 +37,13 @@ export function UserTag({ username, isCurrentUser }: UserTagProps) {
         <TooltipProvider>
             <Tooltip 
                 content={tooltipContent}
-                className="bg-[#191919] border border-white/[0.13] rounded-lg p-3"
+                className="bg-neutral-secondary border border-neutral-border rounded-lg p-3"
             >
                 <span 
                     className={`inline-flex items-center px-1 py-[1px] rounded-[6px] 
                         ${isCurrentUser ? 
-                            'bg-white/[0.17] text-white' : 
-                            'bg-[#5D55FE3B] text-[#A39EFF]'
+                            'bg-neutral-hover text-text-primary' : 
+                            'bg-accent-bg text-accent-light'
                         }`}
                 >
                     @{username}

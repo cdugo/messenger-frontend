@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useUser } from "../contexts/UserContext";
-import { cn } from "@/lib/utils";
 import { apiClient } from "../api/apiClient";
 import { Server } from "../types/server";
 import { useServer } from '../contexts/ServerContext';
@@ -26,6 +25,32 @@ function formatMessageTime(date: string) {
     month: 'short',
     day: 'numeric'
   });
+}
+
+function formatMessageContent(content: string) {
+  const mentionRegex = /@\[(\w+)\]/g;
+  const parts = [];
+  let lastIndex = 0;
+  let match;
+
+  while ((match = mentionRegex.exec(content)) !== null) {
+    // Add text before the mention
+    if (match.index > lastIndex) {
+      parts.push(content.slice(lastIndex, match.index));
+    }
+
+    const username = match[1];
+    parts.push(`@${username}`);  // Keep the @ symbol with the username
+
+    lastIndex = match.index + match[0].length;
+  }
+
+  // Add remaining text
+  if (lastIndex < content.length) {
+    parts.push(content.slice(lastIndex));
+  }
+
+  return parts.join('');
 }
 
 export function ChatSidebar() {
@@ -74,7 +99,7 @@ export function ChatSidebar() {
                     {server.latest_message.user.username}:
                   </span>
                   <span className="text-sm text-gray-300 truncate">
-                    {server.latest_message.content}
+                    {formatMessageContent(server.latest_message.content)}
                   </span>
                 </div>
               </div>
@@ -86,7 +111,7 @@ export function ChatSidebar() {
           )}
         </div>
 
-        <div className="border-t p-4">
+        <div className="border-t p-5">
           <div className="flex items-center gap-2">
             <div className="flex-1">
               <p className="text-sm font-medium">{user.username}</p>

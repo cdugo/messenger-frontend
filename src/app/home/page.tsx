@@ -1,7 +1,7 @@
 'use client';
 
 import { useServer } from '../contexts/ServerContext';
-import { Avatar, Popover } from "@medusajs/ui";
+import { Avatar } from "@medusajs/ui";
 import { Message } from '@/app/types/server';
 import { useRef, useState, useCallback } from 'react';
 import { useEffect } from 'react';
@@ -22,7 +22,7 @@ interface ChatBubbleGroupProps {
 }
 
 function formatMessageContent(content: string, users: User[], isCurrentUser: boolean) {
-  const mentionRegex = /@(\w+)/g;
+  const mentionRegex = /@\[(\w+)\]/g;
   const parts = [];
   let lastIndex = 0;
   let match;
@@ -210,7 +210,6 @@ export default function HomePage() {
   const [newMessage, setNewMessage] = useState("")
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const [replyTo, setReplyTo] = useState<ReplyTo | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }
@@ -266,7 +265,6 @@ export default function HomePage() {
 
       case 'error':
         console.error('WebSocket error:', data.message);
-        setError(data.message || 'An error occurred');
         break;
 
       default:
@@ -355,12 +353,14 @@ export default function HomePage() {
   const messageGroups = groupMessages(messages || []);
 
   return (
-    <div className="flex flex-col h-screen bg-background">
-      <div className="flex-1 overflow-y-auto p-4 pr-5">
-        <h1 className="text-2xl font-bold mb-4 text-white">{currentServer.name}</h1>
-        
+    <div className="h-screen flex flex-col bg-background overscroll-none">
+      <div className="sticky top-0 z-10 bg-background px-4 py-3 border-b border-gray-800">
+        <h1 className="text-2xl font-bold text-white">{currentServer.name}</h1>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-4 overscroll-none">
         {messageGroups.length > 0 ? (
-          <div className="space-y-6">
+          <div className="space-y-6 py-4">
             {messageGroups.map((messageGroup) => (
               <ChatBubbleGroup
                 key={messageGroup[0].id}
@@ -377,7 +377,8 @@ export default function HomePage() {
           <NoMessages />
         )}
       </div>
-      <div className="sticky bottom-0 w-full  bg-[#191919]">
+
+      <div className="sticky bottom-0 w-full bg-[#191919]">
         <TextBox 
           value={newMessage}
           onChange={setNewMessage}

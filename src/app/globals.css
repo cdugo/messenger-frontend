@@ -47,3 +47,61 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+/* Add these styles to your globals.css */
+.mentions-input {
+    width: 100%;
+}
+
+.mentions-input__input {
+    color: var(--text-primary);
+    outline: none;
+    border: none;
+}
+
+.mentions-input__suggestions__list {
+    background-color: var(--neutral-secondary);
+    border: 1px solid var(--borders-light);
+    border-radius: 12px;
+    box-shadow: 0px 6px 10px 0px rgba(0,0,0,0.05);
+    overflow: hidden;
+    backdrop-filter: blur(32px);
+    position: absolute;
+    bottom: 100%;
+    left: -12px;
+    right: -12px;
+    margin-bottom: 8px;
+    min-width: 200px;
+}
+
+.mentions-input__suggestions__item {
+    padding: 0;
+}
+
+.mentions-input__highlighter {
+    border: none;
+    outline: none;
+    color: black;
+}
+
+.mentions-input__suggestions__list::-webkit-scrollbar {
+    width: 4px;
+}
+
+.mentions-input__suggestions__list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.mentions-input__suggestions__list::-webkit-scrollbar-thumb {
+    background: var(--neutral-primary);
+    border-radius: 2px;
+}
+
+.mentions-input__suggestions__list::-webkit-scrollbar-thumb:hover {
+    background: #404040;
+}
+
+.mentions-input__control {
+    border: none;
+    color: white;
+}
