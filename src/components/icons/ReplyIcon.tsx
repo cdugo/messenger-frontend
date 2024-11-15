@@ -1,5 +1,13 @@
-export function ReplyIcon({ className }: { className?: string }) {
-    return (<svg width="18" height="16" viewBox="0 0 18 16" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+export function ReplyIcon() {
+    return (
+    <svg 
+        width="18" 
+        height="16" 
+        viewBox="0 0 18 16" 
+        fill="currentColor" 
+        xmlns="http://www.w3.org/2000/svg" 
+        className="text-gray-400 hover:text-white w-4 h-4"
+        >
         <path d="M7.86378 0.430462V3.78C7.86378 3.89104 7.95425 3.98076 8.06529 3.98055C12.2442 3.9725 16.4036 4.69757 17.6935 7.963C19.0041 11.2809 15.7276 15.2624 15.0722 15.926C14.4169 16.5896 15.0722 12.6081 13.7616 11.2809C12.4846 9.98776 10.5854 9.95462 8.06406 9.95377C7.95361 9.95373 7.86378 10.0433 7.86378 10.1537V12.8412C7.86378 13.0113 7.66483 13.1038 7.5348 12.994L0.181136 6.78868C0.0864464 6.70878 0.086447 6.56288 0.181136 6.48298L7.5348 0.277611C7.66483 0.167882 7.86378 0.260316 7.86378 0.430462Z" fill="#8D8D8D"/>
         </svg>
     )

@@ -1,87 +1,109 @@
-import { createConsumer, Subscription } from '@rails/actioncable'
+import { createConsumer, Subscription } from '@rails/actioncable';
+import { WebSocketMessage } from "@/app/types/server";
 
-interface MessageData {
-  type: 'message' | 'message_deleted' | 'error';
-  id?: number;
-  content?: string;
-  user_id?: number;
-  message_id?: number;
-  created_at?: string;
-  parent_id?: number;
-  server_id?: number;
-  user?: {
-    id: number;
-    username: string;
-  };
-  message?: string;
-}
-
-type MessageCallback = (data: MessageData) => void;
+export type MessageCallback = (data: WebSocketMessage) => void;
 
 class WebSocketClient {
-  private consumer = createConsumer('ws://localhost:8080/cable');
-  private subscriptions = new Map<string, Subscription>();
+  private consumer;
+  private serverSubscriptions: Map<string, Subscription> = new Map();
+  private callbacks: Map<string, MessageCallback> = new Map();
 
-  subscribeToServer(serverId: string, callback: MessageCallback): void {
-    if (this.subscriptions.has(serverId)) {
-      console.warn('Already subscribed to server:', serverId);
-      return;
-    }
+  constructor() {
+    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8080/cable';
+    this.consumer = createConsumer(wsUrl);
+  }
 
+  private getServerKey(serverId: string | number): string {
+    return String(serverId);
+  }
+
+  subscribeToServer(serverId: string | number, callback: MessageCallback) {
+    const serverKey = this.getServerKey(serverId);
+    
+    // Store the callback
+    this.callbacks.set(serverKey, callback);
+
+    // Create the subscription
     const subscription = this.consumer.subscriptions.create(
       {
         channel: 'MessageChannel',
         server_id: Number(serverId)
       },
       {
-        connected() {
-          console.log('Connected to server:', serverId);
+        connected: () => {
+          console.log(`Connected to server ${serverKey}`);
         },
-
-        disconnected() {
-          console.log('Disconnected from server:', serverId);
+        disconnected: () => {
+          console.log(`Disconnected from server ${serverKey}`);
         },
-
-        received(data: MessageData) {
-          console.log('Raw received message:', data);
-          callback(data);
-        },
-
-        rejected() {
-          console.log('Subscription rejected for server:', serverId);
+        received: (data) => {
+          const cb = this.callbacks.get(serverKey);
+          if (cb) {
+            cb(data);
+          }
         }
       }
-    ) as Subscription;
+    );
 
-    this.subscriptions.set(serverId, subscription);
+    this.serverSubscriptions.set(serverKey, subscription);
   }
 
-  unsubscribeFromServer(serverId: string): void {
-    const subscription = this.subscriptions.get(serverId);
+  unsubscribeFromServer(serverId: string | number) {
+    const serverKey = this.getServerKey(serverId);
+    const subscription = this.serverSubscriptions.get(serverKey);
     if (subscription) {
       subscription.unsubscribe();
-      this.subscriptions.delete(serverId);
+      this.serverSubscriptions.delete(serverKey);
+      this.callbacks.delete(serverKey);
     }
   }
 
-  sendMessage(serverId: string, content: string, parentMessageId?: number): void {
-    const subscription = this.subscriptions.get(serverId);
-    if (!subscription) {
-      console.error('No subscription found for server:', serverId);
-      return;
+  sendMessage(serverId: string | number, content: string, parentMessageId?: number) {
+    const serverKey = this.getServerKey(serverId);
+    const subscription = this.serverSubscriptions.get(serverKey);
+    if (subscription) {
+      subscription.perform('message_create', {
+        server_id: Number(serverId),
+        content,
+        parent_message_id: parentMessageId || null
+      });
+    } else {
+      console.error(`No subscription found for server ${serverKey}`);
     }
-
-    subscription.perform('receive', {
-      action: 'create',
-      server_id: Number(serverId),
-      content,
-      parent_message_id: parentMessageId || null
-    });
   }
 
-  disconnect(): void {
+  sendReaction(serverId: string | number, messageId: number, emoji: string) {
+    const serverKey = this.getServerKey(serverId);
+    const subscription = this.serverSubscriptions.get(serverKey);
+    if (subscription) {
+      subscription.perform('reaction_create', {
+        server_id: Number(serverId),
+        message_id: messageId,
+        emoji
+      });
+    } else {
+      console.error(`No subscription found for server ${serverKey}`);
+    }
+  }
+
+  deleteReaction(serverId: string | number, messageId: number, emoji: string) {
+    const serverKey = this.getServerKey(serverId);
+    const subscription = this.serverSubscriptions.get(serverKey);
+    if (subscription) {
+      subscription.perform('reaction_delete', {
+        server_id: Number(serverId),
+        message_id: messageId,
+        emoji
+      });
+    } else {
+      console.error(`No subscription found for server ${serverKey}`);
+    }
+  }
+
+  disconnect() {
     this.consumer.disconnect();
-    this.subscriptions.clear();
+    this.serverSubscriptions.clear();
+    this.callbacks.clear();
   }
 }
 

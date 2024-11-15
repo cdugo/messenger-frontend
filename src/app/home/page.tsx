@@ -2,9 +2,8 @@
 
 import { useServer } from '../contexts/ServerContext';
 import { Avatar } from "@medusajs/ui";
-import { Message } from '@/app/types/server';
-import { useRef, useState, useCallback } from 'react';
-import { useEffect } from 'react';
+import { Message, Reaction, WebSocketMessage, MessageType } from '@/app/types/server';
+import { useRef, useState, useCallback, useEffect } from 'react';
 import { apiClient } from '../api/apiClient';
 import { useUser } from '../contexts/UserContext';
 import { ReplyTo, TextBox } from '@/components/TextBox';
@@ -12,6 +11,10 @@ import { websocket } from '@/lib/websocket';
 import { ReplyIcon } from '@/components/icons/ReplyIcon';
 import { User } from '../types/user';
 import { UserTag } from '@/components/UserTag';
+import EmojiIcon from '@/components/EmojiIcon';
+import { EmojiPickerWrapper } from '@/components/EmojiPickerWrapper';
+import { MessageReactions } from "@/components/MessageReactions";
+
 
 interface ChatBubbleGroupProps {
   messages: Message[];
@@ -19,6 +22,8 @@ interface ChatBubbleGroupProps {
   isCurrentUser: boolean;
   setReplyTo: (replyTo: ReplyTo) => void;
   users: User[];
+  server_id: number;
+  username: string;
 }
 
 function formatMessageContent(content: string, users: User[], isCurrentUser: boolean) {
@@ -106,9 +111,76 @@ function MessageTail({ isCurrentUser }: { isCurrentUser: boolean }) {
   );
 }
 
+function ChatBubbleGroup({ messages, getParentMessage, isCurrentUser, setReplyTo, users, server_id, username }: ChatBubbleGroupProps) {
+  const [openEmojiPicker, setOpenEmojiPicker] = useState<number | null>(null);
+  const emojiButtonRefs = useRef<Map<number, HTMLButtonElement>>(new Map());
+  const [pickerPosition, setPickerPosition] = useState({ top: 0, left: 0 });
+  
+  const calculatePickerPosition = useCallback((messageId: number) => {
+    const buttonElement = emojiButtonRefs.current.get(messageId);
+    if (!buttonElement) return { top: 0, left: 0 };
+    
+    const rect = buttonElement.getBoundingClientRect();
+    const pickerHeight = 435;
+    const pickerWidth = 352;
+    const padding = 10;
+    const headerHeight = 64;
+    const textboxHeight = 100;
+    const availableHeight = window.innerHeight - textboxHeight;
+    
+    let left = rect.right + padding;
+    if (left + pickerWidth > window.innerWidth) {
+      left = rect.left - pickerWidth - padding;
+    }
+    
+    const isInBottomHalf = rect.top > availableHeight / 2;
+    
+    let top;
+    if (isInBottomHalf) {
+      top = rect.top - pickerHeight - padding;
+      if (top < headerHeight) {
+        top = rect.bottom + padding;
+        if (top + pickerHeight > availableHeight) {
+          top = availableHeight - pickerHeight - padding;
+        }
+      }
+    } else {
+      top = rect.bottom + padding;
+      if (top + pickerHeight > availableHeight) {
+        top = rect.top - pickerHeight - padding;
+        if (top < headerHeight) {
+          top = headerHeight + padding;
+        }
+      }
+    }
+    
+    return { top, left };
+  }, []);
 
+  useEffect(() => {
+    if (openEmojiPicker) {
+      setPickerPosition(calculatePickerPosition(openEmojiPicker));
+    }
+  }, [openEmojiPicker, calculatePickerPosition]);
 
-function ChatBubbleGroup({ messages, getParentMessage, isCurrentUser, setReplyTo, users }: ChatBubbleGroupProps) {
+  const handleEmojiButtonClick = useCallback((messageId: number) => {
+    setOpenEmojiPicker(openEmojiPicker === messageId ? null : messageId);
+  }, [openEmojiPicker]);
+
+  const handleReactionClick = useCallback((messageId: number, emoji: string, currentUsername: string) => {
+    // Check if user has already reacted with this emoji
+    const message = messages.find(m => m.id === messageId);
+    const hasReacted = message?.reactions.some(
+      r => r.emoji === emoji && r.user.username === currentUsername
+    );
+
+    if (hasReacted) {
+      websocket.deleteReaction(server_id.toString(), messageId, emoji);
+    } else {
+      websocket.sendReaction(server_id.toString(), messageId, emoji);
+    }
+  }, [server_id, messages]);
+
   return (
     <div className={`flex flex-row ${isCurrentUser ? 'justify-end' : 'justify-start'} w-full relative z-0`}>
       {!isCurrentUser && (
@@ -124,6 +196,7 @@ function ChatBubbleGroup({ messages, getParentMessage, isCurrentUser, setReplyTo
         <div className={`flex flex-col gap-1 ${isCurrentUser ? 'items-end' : 'items-start'} w-full`}>
           {messages.map((message, index) => {
             const parentMessage = getParentMessage(message.parent_message_id);
+            
             return (
               <div key={message.id} className="flex flex-col relative group w-full">
                 <div className="flex items-center gap-2 w-full">
@@ -142,7 +215,16 @@ function ChatBubbleGroup({ messages, getParentMessage, isCurrentUser, setReplyTo
                       )}
                       {formatMessageContent(message.content, users, isCurrentUser)}
                     </div>
+                    {message.reactions.length > 0 && (
+                      <MessageReactions
+                        reactions={message.reactions}
+                        currentUsername={username}
+                        onReactionClick={(emoji) => handleReactionClick(message.id, emoji, username)}
+                        isCurrentUserAuthor={isCurrentUser}
+                      />
+                    )}
                   </div>
+                  <div className={`flex flex-row items-center gap-2 ${openEmojiPicker === message.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}>
                   {!isCurrentUser && (
                     <button
                       ref={(button) => {
@@ -158,12 +240,36 @@ function ChatBubbleGroup({ messages, getParentMessage, isCurrentUser, setReplyTo
                         content: message.content,
                         username: message.user.username
                       })}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                      className=" flex-shrink-0"
                     >
-                      <ReplyIcon className="w-4 h-4 text-gray-400 hover:text-white" />
+                      <ReplyIcon />
                     </button>
-                  )}
+                    )}
+                    {!isCurrentUser && (
+                      <button
+                        ref={(el) => {
+                          if (el) {
+                            emojiButtonRefs.current.set(message.id, el);
+                          }
+                        }}
+                        onClick={() => handleEmojiButtonClick(message.id)}
+                        className="flex-shrink-0"
+                      >
+                        <EmojiIcon />
+                      </button>
+                    )}
+                  </div>
                 </div>
+                {openEmojiPicker === message.id && (
+                  <EmojiPickerWrapper
+                    position={pickerPosition}
+                    onEmojiSelect={(emoji) => {
+                      handleReactionClick(message.id, emoji, username);
+                      setOpenEmojiPicker(null);
+                    }}
+                    onClickOutside={() => setOpenEmojiPicker(null)}
+                  />
+                )}
                 {index === messages.length - 1 && <MessageTail isCurrentUser={isCurrentUser} />}
               </div>
             );
@@ -216,61 +322,92 @@ export default function HomePage() {
   const [users, setUsers] = useState<User[]>([]);
 
   useEffect(() => {
-    scrollToBottom()
-  }, [messages])
+    // Only scroll if the last message is new (within last 1 second)
+    if (messages.length > 0) {
+      const lastMessage = messages[messages.length - 1];
+      const messageTime = new Date(lastMessage.created_at).getTime();
+      const now = new Date().getTime();
+      const isNewMessage = now - messageTime < 1000; // Within last second
 
-  const handleWebSocketMessage = (data: {
-    type: 'message' | 'message_deleted' | 'error';
-    id?: number;
-    content?: string;
-    user_id?: number;
-    message_id?: number;
-    created_at?: string;
-    updated_at?: string;
-    parent_message_id?: number | null;
-    user?: { id: number; username: string };
-    message?: string;
-  }) => {        
+      if (isNewMessage) {
+        scrollToBottom();
+      }
+    }
+  }, [messages]);
 
+  const handleWebSocketMessage = (data: WebSocketMessage) => {
+    console.log(data);
     switch (data.type) {
-      case 'message':
+      case MessageType.MESSAGE: {
         // Check if we already have this message
-        if (data.id && !messages.some(m => m.id === data.id)) {
+        if (!messages.some(m => m.id === data.id)) {
           const newMessage: Message = {
-              id: data.id,
-              content: data.content || '',
-              user_id: data.user_id || 0,
-              created_at: data.created_at || new Date().toISOString(),
-              parent_message_id: data.parent_message_id || null,
-              user: { username: data.user?.username || '' },
-              server_id: Number(currentServer?.id),
-              updated_at: data.updated_at || new Date().toISOString()
+            id: data.id,
+            content: data.content,
+            user_id: data.user_id,
+            created_at: data.created_at,
+            parent_message_id: data.parent_message_id,
+            user: data.user,
+            server_id: data.server_id,
+            updated_at: data.updated_at,
+            reactions: []
+          };
+          
+          setMessages(prev => [...prev, newMessage]);
+        }
+        break;
+      }
+
+      case MessageType.MESSAGE_DELETED:
+        setMessages(prev => prev.filter(m => m.id !== data.message_id));
+        break;
+
+      case MessageType.REACTION: {
+        const newReaction: Reaction = {
+          id: data.id,
+          emoji: data.reaction.emoji,
+          user: {
+            username: data.reaction.username
           }
-          setMessages(prev => {
-            if (!prev) return prev;
-            const updatedMessages = [...prev, newMessage];
-            return updatedMessages;
-          });
-        }
+        };
+        
+        setMessages(prev => prev.map(m => 
+          m.id === data.message_id 
+            ? { 
+                ...m, 
+                reactions: [...m.reactions.filter(r => 
+                  // Remove any existing reactions from this user with this emoji
+                  !(r.user.username === data.reaction.username && r.emoji === data.reaction.emoji)
+                ), newReaction] 
+              }
+            : m
+        ));
+        break;
+      }
+
+      case MessageType.REACTION_DELETED:
+        console.log('Handling reaction delete:', data);
+        setMessages(prev => prev.map(m => {
+          if (m.id === data.message_id) {
+            const updatedReactions = m.reactions.filter(r => 
+              // Keep reactions that don't match both username and emoji
+              !(r.user.username === data.reaction.username)
+            );
+            console.log('Updated reactions:', updatedReactions);
+            return { ...m, reactions: updatedReactions };
+          }
+          return m;
+        }));
         break;
 
-      case 'message_deleted':
-        if (data.message_id) {
-          setMessages(prev => {
-            if (!prev) return prev;
-            return prev.filter(m => m.id !== data.message_id)
-          });
-        }
-        break;
-
-      case 'error':
+      case MessageType.ERROR:
         console.error('WebSocket error:', data.message);
         break;
 
       default:
         console.warn('Unknown message type:', data);
     }
-  }
+  };
 
   useEffect(() => {
     if (!currentServer) return;
@@ -347,6 +484,10 @@ export default function HomePage() {
     return currentMessageMap.get(messageId) || null;
   }, [messages]);
 
+  useEffect(() => {
+    console.log('Messages updated:', messages);
+  }, [messages]);
+
   if (!currentServer) return <NoServerSelected />;
   if (isLoading) return <LoadingState />;
 
@@ -369,6 +510,8 @@ export default function HomePage() {
                 isCurrentUser={messageGroup[0].user_id.toString() === user?.id.toString()}
                 setReplyTo={setReplyTo}
                 users={users}
+                server_id={Number(currentServer.id)}
+                username={user?.username || ''}
               />
             ))}
             <div ref={messagesEndRef} />
