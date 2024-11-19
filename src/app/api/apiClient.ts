@@ -1,4 +1,4 @@
-import { MeResponse, ServerWithMessagesAndUsers } from '../types/server';
+import { MeResponse, MessagesResponse, ServerWithUsers } from '../types/server';
 import { LoginCredentials, User } from '../types/user';
 
 interface SignUpCredentials {
@@ -50,13 +50,13 @@ class APIClient {
     }
   }
 
-  async getServer(id: string): Promise<ServerWithMessagesAndUsers | null> {
+  async getServer(id: string): Promise<ServerWithUsers | null> {
     try {
       const response = await fetch(`${this.baseUrl}/servers/${id}`, {
         credentials: 'include',
-    });
+      });
 
-    if (!response.ok) {
+      if (!response.ok) {
         throw new Error('Failed to get server');
       }
 
@@ -86,6 +86,17 @@ class APIClient {
     const response = await fetch(`${this.baseUrl}/me`, {
       credentials: 'include',
     });
+    return response.json();
+  }
+
+  async getMessages(serverId: number | string, page: number = 1): Promise<MessagesResponse> {
+    const response = await fetch(`${this.baseUrl}/servers/${serverId}/messages?page=${page}`, {
+      credentials: 'include',
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch messages');
+    }
     return response.json();
   }
 }
