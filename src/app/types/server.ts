@@ -30,8 +30,7 @@ export type MeResponse = {
     servers: Server[];
 }
 
-export type ServerWithMessagesAndUsers = Server & {
-    messages: Message[];
+export type ServerWithUsers = Server & {
     users: User[];
 }
 
@@ -105,3 +104,17 @@ export type WebSocketMessage =
   | ReactionData 
   | ReactionDeletedData 
   | ErrorData;
+
+
+export interface PaginationData {
+    current_page: number;
+    total_pages: number;
+    total_count: number;
+    next_page: number | null;
+    prev_page: number | null;
+}
+
+export interface MessagesResponse {
+  messages: Message[];
+  pagination: PaginationData;
+}

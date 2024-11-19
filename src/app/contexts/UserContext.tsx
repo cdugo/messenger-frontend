@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, LoginCredentials } from '../types/user';
 import { apiClient } from '../api/apiClient';
-import router from 'next/router';
+import { useRouter } from 'next/navigation';
 
 interface UserContextType {
   user: User | null;
@@ -17,6 +17,7 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 export function UserProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     checkAuth();
