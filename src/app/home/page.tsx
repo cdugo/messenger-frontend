@@ -21,7 +21,6 @@ export default function HomePage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [replyTo, setReplyTo] = useState<ReplyTo | null>(null);
   const [users, setUsers] = useState<User[]>([]);
-  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const lastMessageRef = useRef<HTMLDivElement>(null);
   const [initialLoad, setInitialLoad] = useState(true);
 

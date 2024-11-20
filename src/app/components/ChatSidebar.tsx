@@ -5,6 +5,8 @@ import { useUser } from "../contexts/UserContext";
 import { apiClient } from "../api/apiClient";
 import { Server } from "../types/server";
 import { useServer } from '../contexts/ServerContext';
+import { websocket } from '@/lib/websocket';
+import { WebSocketNotification } from '../types/server';
 
 // Helper function to format timestamp
 function formatMessageTime(date: string) {
@@ -56,18 +58,69 @@ function formatMessageContent(content: string) {
 export function ChatSidebar() {
   const { user } = useUser();
   const [servers, setServers] = useState<Server[]>([]);
-  const { setCurrentServer } = useServer();
+  const { setCurrentServer, currentServer } = useServer();
 
   useEffect(() => {
     if (user) {
       apiClient.getMe().then((data) => { 
         setServers(data.servers);
       });
+
+      // Subscribe to notifications
+      websocket.subscribeToNotifications((notification: WebSocketNotification) => {
+        if (notification.type === 'new_message') {
+          setServers(prevServers => {
+            return prevServers.map(server => {
+              if (Number(server.id) === notification.server_id) {
+                const isCurrentServer = currentServer?.id === server.id;
+                return {
+                  ...server,
+                  latest_message: {
+                    id: notification.data.message_id,
+                    content: notification.data.preview,
+                    created_at: notification.timestamp,
+                    updated_at: notification.timestamp,
+                    user_id: notification.data.sender.id,
+                    server_id: notification.server_id,
+                    parent_message_id: null,
+                    user: {
+                      username: notification.data.sender.username
+                    },
+                    reactions: []
+                  },
+                  read_state: {
+                    ...server.read_state,
+                    unread_count: isCurrentServer ? 0 : server.read_state.unread_count + 1
+                  }
+                };
+              }
+              return server;
+            });
+          });
+        }
+      });
+
+      return () => {
+        websocket.unsubscribeFromNotifications();
+      };
     }
-  }, [user]);
+  }, [user, currentServer]);
 
   const handleServerClick = (server: Server) => {
     setCurrentServer(server);
+    setServers(prevServers => 
+      prevServers.map(s => 
+        s.id === server.id 
+          ? {
+              ...s,
+              read_state: {
+                ...s.read_state,
+                unread_count: 0
+              }
+            }
+          : s
+      )
+    );
   };
 
   if (!user) return null;
@@ -85,20 +138,42 @@ export function ChatSidebar() {
               <div 
                 key={server.id} 
                 onClick={() => handleServerClick(server)}
-                className="px-3 py-4 border-b hover:bg-gray-900 cursor-pointer "
+                className="px-4 py-4 border-b hover:bg-gray-900 cursor-pointer relative"
               >
-                <div className="flex justify-between items-start mb-1">
-                  <p className="font-medium text-base">{server.name}</p>
+                {server.read_state.unread_count > 0 && (
+                  <div className="absolute left-2 top-1/2 -translate-y-1/2 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
+                    <span className="text-xs text-white font-medium">
+                      {server.read_state.unread_count > 99 ? '99+' : server.read_state.unread_count}
+                    </span>
+                  </div>
+                )}
+
+                <div className="flex justify-between items-start mb-1 pl-6">
+                  <p className={`font-medium text-base ${
+                    server.read_state.unread_count > 0 
+                      ? 'font-bold text-white' 
+                      : 'text-gray-300'
+                  }`}>
+                    {server.name}
+                  </p>
                   <span className="text-xs text-gray-400">
                     {formatMessageTime(server.latest_message.created_at)}
                   </span>
                 </div>
                 
-                <div className="flex items-center gap-1">
-                  <span className="text-sm text-gray-400">
+                <div className="flex items-center gap-1 pl-6">
+                  <span className={`text-sm ${
+                    server.read_state.unread_count > 0 
+                      ? 'font-semibold text-white' 
+                      : 'text-gray-400'
+                  }`}>
                     {server.latest_message.user.username}:
                   </span>
-                  <span className="text-sm text-gray-300 truncate">
+                  <span className={`text-sm truncate ${
+                    server.read_state.unread_count > 0 
+                      ? 'font-semibold text-white' 
+                      : 'text-gray-300'
+                  }`}>
                     {formatMessageContent(server.latest_message.content)}
                   </span>
                 </div>

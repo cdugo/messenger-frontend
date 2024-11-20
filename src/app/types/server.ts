@@ -23,6 +23,7 @@ export interface Server {
     updated_at: string;
     owner_id: number;
     latest_message: Message;
+    read_state: ReadState;
 }
 
 export type MeResponse = {
@@ -47,8 +48,7 @@ export enum MessageType {
   MESSAGE_DELETED = 'message_deleted',
   REACTION = 'reaction',
   REACTION_DELETED = 'reaction_delete',
-  ERROR = 'error',
-  CONFIRM_SUBSCRIPTION = 'confirm_subscription'
+  ERROR = 'error'
 }
 
 interface BaseWebSocketMessage {
@@ -117,4 +117,23 @@ export interface PaginationData {
 export interface MessagesResponse {
   messages: Message[];
   pagination: PaginationData;
+}
+
+export interface WebSocketNotification {
+  type: 'new_message';
+  server_id: number;
+  data: {
+    message_id: number;
+    sender: {
+      id: number;
+      username: string;
+    };
+    preview: string;
+  };
+  timestamp: string;
+}
+
+export interface ReadState {
+  last_read_at: string;
+  unread_count: number;
 }

@@ -1,12 +1,19 @@
 import { createConsumer, Subscription } from '@rails/actioncable';
-import { WebSocketMessage } from "@/app/types/server";
+import { WebSocketMessage, WebSocketNotification } from "@/app/types/server";
 
 export type MessageCallback = (data: WebSocketMessage) => void;
+export type NotificationCallback = (data: WebSocketNotification) => void;
+
+interface ChannelCallback {
+  type: 'message' | 'notification';
+  callback: MessageCallback | NotificationCallback;
+}
 
 class WebSocketClient {
   private consumer;
   private serverSubscriptions: Map<string, Subscription> = new Map();
-  private callbacks: Map<string, MessageCallback> = new Map();
+  private callbacks: Map<string, ChannelCallback> = new Map();
+  private notificationSubscription?: Subscription;
 
   constructor() {
     const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8080/cable';
@@ -20,8 +27,8 @@ class WebSocketClient {
   subscribeToServer(serverId: string | number, callback: MessageCallback) {
     const serverKey = this.getServerKey(serverId);
     
-    // Store the callback
-    this.callbacks.set(serverKey, callback);
+    // Store the callback with its type
+    this.callbacks.set(serverKey, { type: 'message', callback });
 
     // Create the subscription
     const subscription = this.consumer.subscriptions.create(
@@ -38,14 +45,45 @@ class WebSocketClient {
         },
         received: (data) => {
           const cb = this.callbacks.get(serverKey);
-          if (cb) {
-            cb(data);
+          if (cb && cb.type === 'message') {
+            cb.callback(data);
           }
         }
       }
     );
 
     this.serverSubscriptions.set(serverKey, subscription);
+  }
+
+  subscribeToNotifications(callback: NotificationCallback) {
+    // Unsubscribe from any existing notification subscription
+    if (this.notificationSubscription) {
+      this.notificationSubscription.unsubscribe();
+    }
+
+    this.notificationSubscription = this.consumer.subscriptions.create(
+      {
+        channel: 'NotificationChannel'
+      },
+      {
+        connected: () => {
+          console.log('Connected to notifications');
+        },
+        disconnected: () => {
+          console.log('Disconnected from notifications');
+        },
+        received: (data: WebSocketNotification) => {
+          callback(data);
+        }
+      }
+    );
+  }
+
+  unsubscribeFromNotifications() {
+    if (this.notificationSubscription) {
+      this.notificationSubscription.unsubscribe();
+      this.notificationSubscription = undefined;
+    }
   }
 
   unsubscribeFromServer(serverId: string | number) {
@@ -101,6 +139,7 @@ class WebSocketClient {
   }
 
   disconnect() {
+    this.unsubscribeFromNotifications();
     this.consumer.disconnect();
     this.serverSubscriptions.clear();
     this.callbacks.clear();
