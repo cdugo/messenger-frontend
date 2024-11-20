@@ -86,7 +86,8 @@ export function ChatSidebar() {
                     user: {
                       username: notification.data.sender.username
                     },
-                    reactions: []
+                    reactions: [],
+                    attachment_urls: notification.data.attachment_urls
                   },
                   read_state: {
                     ...server.read_state,

@@ -13,6 +13,7 @@ export interface Message {
         username: string;
     };
     reactions: Reaction[];
+    attachment_urls: AttachmentUrl[];
 }
 
 export interface Server {
@@ -67,6 +68,8 @@ interface MessageData extends BaseWebSocketMessage {
   user: {
     username: string;
   };
+  attachment_urls: AttachmentUrl[];
+  reactions: Reaction[];
 }
 
 interface MessageDeletedData extends BaseWebSocketMessage {
@@ -129,6 +132,7 @@ export interface WebSocketNotification {
       username: string;
     };
     preview: string;
+    attachment_urls: AttachmentUrl[];
   };
   timestamp: string;
 }
@@ -136,4 +140,20 @@ export interface WebSocketNotification {
 export interface ReadState {
   last_read_at: string;
   unread_count: number;
+}
+
+export interface Attachment {
+  id: number;
+  url: string;
+  filename: string;
+  content_type: string;
+  byte_size: number;
+  width?: number;
+  height?: number;
+}
+
+export interface AttachmentUrl {
+  id: number;
+  url: string;
+  thumbnail_url: string;
 }
