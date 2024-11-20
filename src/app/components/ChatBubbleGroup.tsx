@@ -1,5 +1,5 @@
 import { Avatar } from "@medusajs/ui";
-import { Message, Reaction } from '../types/server';
+import { Message } from '../types/server';
 import { User } from '../types/user';
 import { ReplyIcon } from '@/components/icons/ReplyIcon';
 import EmojiIcon from '@/components/EmojiIcon';
