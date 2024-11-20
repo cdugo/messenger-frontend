@@ -9,6 +9,7 @@ import { ReplyTo } from '@/components/TextBox';
 import { useState, useRef, useCallback } from 'react';
 import { websocket } from '@/lib/websocket';
 import { UserTag } from '@/components/UserTag';
+import { MessageAttachments } from '@/components/MessageAttachments';
 
 interface ChatBubbleGroupProps {
   messages: Message[];
@@ -211,8 +212,15 @@ export function ChatBubbleGroup({
                         />
                       )}
                       {formatMessageContent(message.content, users, isCurrentUser)}
+                      
+                      {message.attachment_urls && message.attachment_urls.length > 0 && (
+                        <div className="mt-2">
+                          <MessageAttachments attachments={message.attachment_urls} />
+                        </div>
+                      )}
                     </div>
-                    {message.reactions.length > 0 && (
+                    
+                    {message.reactions && message.reactions.length > 0 && (
                       <MessageReactions
                         reactions={message.reactions}
                         currentUsername={username}

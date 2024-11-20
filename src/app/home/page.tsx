@@ -14,10 +14,12 @@ import { MessageContent } from '../components/MessageContent';
 import { NoServerSelected, LoadingState } from '../components/StateMessages';
 import InfiniteScroll from 'react-infinite-scroll-component';
 
+type NewMessage = { content?: string; attachments: string[] }
+
 export default function HomePage() {
   const { currentServer } = useServer();
   const { user } = useUser();
-  const [newMessage, setNewMessage] = useState("");
+  const [newMessage, setNewMessage] = useState<NewMessage>({ content: "", attachments: [] });
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [replyTo, setReplyTo] = useState<ReplyTo | null>(null);
   const [users, setUsers] = useState<User[]>([]);
@@ -74,12 +76,16 @@ export default function HomePage() {
     return () => { isSubscribed = false; };
   }, [currentServer, handleWebSocketMessage, initialLoad, setMessages, setIsLoading, setHasMoreMessages]);
 
-  const handleSendMessage = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newMessage.trim() || !currentServer) return;
+  const handleSendMessage = (content: string, attachments?: string[]) => {
+    if ((!content?.trim() && (!attachments || attachments.length === 0)) || !currentServer) return;
 
-    websocket.sendMessage(currentServer.id, newMessage, replyTo?.id);
-    setNewMessage("");
+    websocket.sendMessage(
+      currentServer.id, 
+      content, 
+      replyTo?.id,
+      attachments
+    );
+    setNewMessage({ content: "", attachments: [] });
     setReplyTo(null);
   };
 

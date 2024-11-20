@@ -96,14 +96,15 @@ class WebSocketClient {
     }
   }
 
-  sendMessage(serverId: string | number, content: string, parentMessageId?: number) {
+  sendMessage(serverId: string | number, content?: string, parentMessageId?: number, attachments?: string[]) {
     const serverKey = this.getServerKey(serverId);
     const subscription = this.serverSubscriptions.get(serverKey);
     if (subscription) {
       subscription.perform('message_create', {
         server_id: Number(serverId),
         content,
-        parent_message_id: parentMessageId || null
+        parent_message_id: parentMessageId || null,
+        attachment_ids: attachments || []
       });
     } else {
       console.error(`No subscription found for server ${serverKey}`);

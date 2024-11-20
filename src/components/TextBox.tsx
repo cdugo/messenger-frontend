@@ -2,12 +2,17 @@ import { DeleteIcon } from "./icons/DeleteIcon";
 import { User } from "@/app/types/user";
 import { Avatar } from "@medusajs/ui";
 import { MentionsInput, Mention, SuggestionDataItem } from 'react-mentions';
+import { FileUpload } from './FileUpload';
+import { useState, useEffect } from 'react';
+import { directUpload } from '@/lib/uploadService';
+import LoadingSpinner from './LoadingSpinner';
+import Image from 'next/image';
 
 // Types
 interface TextBoxProps {
-    value: string;
-    onChange: (value: string) => void;
-    onSubmit: (e: React.FormEvent) => void;
+    value: NewMessage;
+    onChange: (value: NewMessage) => void;
+    onSubmit: (content: string, attachments?: string[]) => void;
     replyTo: ReplyTo | null;
     setReplyTo: (replyTo: ReplyTo | null) => void;
     users: User[];
@@ -20,10 +25,24 @@ export interface ReplyTo {
 }
 
 interface MessageInputContainerProps {
-    value: string;
+    value: NewMessage;
     users: User[];
-    handleInput: (event: any, newValue: string) => void;
+    handleInput: (event: React.ChangeEvent<HTMLTextAreaElement>, newValue: string) => void;
     handleKeyDown: (event: React.KeyboardEvent) => void;
+    onSubmit: (content: string, attachments?: string[]) => void;
+    onChange: (value: NewMessage) => void;
+}
+
+export type NewMessage = {
+  content?: string;
+  attachments: string[];
+};
+
+interface FilePreview {
+  id: string;
+  url: string;
+  type: string;
+  name: string;
 }
 
 // Components
@@ -111,7 +130,59 @@ function MessageInputContainer({
     users,
     handleInput,
     handleKeyDown,
+    onSubmit,
+    onChange
 }: MessageInputContainerProps) {
+    const [isUploading, setIsUploading] = useState(false);
+    const [previews, setPreviews] = useState<FilePreview[]>([]);
+
+    const handleFileSelect = async (files: File[]) => {
+        const mediaFiles = files.filter(file => 
+            file.type.startsWith('image/') || file.type.startsWith('video/')
+        );
+
+        if (mediaFiles.length === 0) return;
+
+        setIsUploading(true);
+        try {
+            const uploadPromises = mediaFiles.map(async (file) => {
+                const objectUrl = URL.createObjectURL(file);
+                const signedId = await directUpload(file);
+                return {
+                    id: signedId,
+                    url: objectUrl,
+                    type: file.type,
+                    name: file.name
+                };
+            });
+
+            const newPreviews = await Promise.all(uploadPromises);
+            setPreviews(prev => [...prev, ...newPreviews]);
+            
+            onChange({
+                ...value,
+                attachments: [...value.attachments, ...newPreviews.map(p => p.id)]
+            });
+        } catch (error) {
+            console.error('Failed to upload files:', error);
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    useEffect(() => {
+        return () => {
+            previews.forEach(preview => URL.revokeObjectURL(preview.url));
+        };
+    }, [previews]);
+
+    const handleSubmit = () => {
+        const hasAttachments = value.attachments && value.attachments.length > 0;
+        if (value.content?.trim() || hasAttachments) {
+            onSubmit(value.content || '', value.attachments);
+        }
+    };
+
     const renderUserSuggestion = (
         suggestion: SuggestionDataItem,
         search: string,
@@ -150,61 +221,126 @@ function MessageInputContainer({
     };
 
     // Calculate if the input has multiple lines
-    const hasMultipleLines = value.split('\n').length > 1 || value.length > 50;
+    const hasMultipleLines = (value.content || '').split('\n').length > 1 || (value.content || '').length > 50;
+
+    const handleRemoveAttachment = (previewId: string) => {
+        // Find the preview before removing it so we can revoke its URL
+        const previewToRemove = previews.find(p => p.id === previewId);
+        if (previewToRemove) {
+            URL.revokeObjectURL(previewToRemove.url);
+        }
+        
+        setPreviews(prev => prev.filter(p => p.id !== previewId));
+        onChange({
+            ...value,
+            attachments: value.attachments.filter(id => id !== previewId)
+        });
+    };
 
     return (
-        <div className="flex flex-row border-t border-borders-light py-[10px] px-[10px]">
-            <div className="bg-neutral-primary rounded-full p-2 w-8 h-8 flex items-center justify-center mr-[10px] self-center">
-                <PlusIcon />
-            </div>
-
-            <div className={`flex flex-row items-start justify-between w-full min-h-[40px] 
-                ${hasMultipleLines ? 'rounded-2xl' : 'rounded-[100px]'} 
-                bg-background-overlay border border-borders-light px-4`}
-            >
-                <div className="flex flex-row items-start w-full">
-                    <div className="flex flex-col w-full items-start relative py-[6px]">
-                        <MentionsInput
-                            value={value}
-                            onChange={handleInput}
-                            onKeyDown={handleKeyDown}
-                            placeholder="Write a message..."
-                            style={mentionsInputStyle}
-                            className="mentions-input"
+        <div className="flex flex-col w-full">
+            {previews.length > 0 && (
+                <div className="flex flex-wrap gap-2 p-2 border-t border-borders-light">
+                    {previews.map((preview) => (
+                        <div 
+                            key={preview.id} 
+                            className="relative group w-20 h-20 rounded-lg overflow-hidden"
                         >
-                            <Mention
-                                trigger="@"
-                                data={[
-                                    ...users.map(user => ({
-                                        id: String(user.id),
-                                        display: user.username
-                                    })),
-                                    { id: 'everyone', display: 'everyone' }
-                                ]}
-                                renderSuggestion={renderUserSuggestion}
-                                appendSpaceOnAdd
-                                markup="@[__display__]"
-                                displayTransform={(id, display) => `@${display}`}
-                                className="bg-accent-bg w-full px-[2px] py-[2px] rounded-[6px]"
-                            />
-                        </MentionsInput>
-                    </div>
+                            {preview.type.startsWith('image/') ? (
+                                <Image
+                                    src={preview.url}
+                                    alt={preview.name}
+                                    fill
+                                    className="object-cover"
+                                />
+                            ) : preview.type.startsWith('video/') ? (
+                                <video
+                                    src={preview.url}
+                                    className="w-full h-full object-cover"
+                                />
+                            ) : null}
+                            <button
+                                onClick={() => handleRemoveAttachment(preview.id)}
+                                className="absolute top-1 right-1 bg-black/50 rounded-full p-1 
+                                    opacity-0 group-hover:opacity-100 transition-opacity"
+                                type="button"
+                            >
+                                <svg 
+                                    width="12" 
+                                    height="12" 
+                                    viewBox="0 0 24 24" 
+                                    fill="none" 
+                                    stroke="currentColor"
+                                    role="img"
+                                    aria-label="Remove attachment"
+                                >
+                                    <path 
+                                        d="M18 6L6 18M6 6l12 12" 
+                                        strokeWidth="2" 
+                                        strokeLinecap="round" 
+                                    />
+                                </svg>
+                            </button>
+                        </div>
+                    ))}
                 </div>
-                <button 
-                    type="submit"
-                    className="hover:opacity-70 cursor-pointer ml-3 shrink-0 bg-transparent border-0 p-0 self-center"
+            )}
+
+            <div className="flex flex-row border-t border-borders-light py-[10px] px-[10px]">
+                <div className="flex items-center pr-[10px]">
+                    <FileUpload onFileSelect={handleFileSelect} />
+                    {isUploading && (
+                        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                            <LoadingSpinner size="sm" />
+                        </div>
+                    )}
+                </div>
+
+                <div className={`flex flex-row items-start justify-between w-full min-h-[40px] 
+                    ${hasMultipleLines ? 'rounded-2xl' : 'rounded-[100px]'} 
+                    bg-background-overlay border border-borders-light px-4`}
                 >
-                    <SendIcon />
-                </button>
+                    <div className="flex flex-row items-start w-full">
+                        <div className="flex flex-col w-full items-start relative py-[6px]">
+                            <MentionsInput
+                                value={value.content || ''}
+                                onChange={(e: any, newValue: string, newPlainTextValue: string) => {
+                                    handleInput(e, newPlainTextValue);
+                                }}
+                                onKeyDown={handleKeyDown}
+                                placeholder="Write a message..."
+                                style={mentionsInputStyle}
+                                className="mentions-input"
+                            >
+                                <Mention
+                                    trigger="@"
+                                    data={[
+                                        ...users.map(user => ({
+                                            id: String(user.id),
+                                            display: user.username
+                                        })),
+                                        { id: 'everyone', display: 'everyone' }
+                                    ]}
+                                    renderSuggestion={renderUserSuggestion}
+                                    appendSpaceOnAdd
+                                    markup="@[__display__]"
+                                    displayTransform={(id, display) => `@${display}`}
+                                    className="bg-accent-bg w-full px-[2px] py-[2px] rounded-[6px]"
+                                />
+                            </MentionsInput>
+                        </div>
+                    </div>
+                    <button 
+                        type="button"
+                        onClick={handleSubmit}
+                        className="hover:opacity-70 cursor-pointer ml-3 shrink-0 bg-transparent border-0 p-0 self-center"
+                    >
+                        <SendIcon />
+                    </button>
+                </div>
             </div>
         </div>
     );
-}
-
-function PlusIcon() {
-    return <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path fillRule="evenodd" clipRule="evenodd" d="M7.25 14.25C7.25 14.6642 7.58579 15 8 15C8.41421 15 8.75 14.6642 8.75 14.25V8.75L14.25 8.75C14.6642 8.75 15 8.41421 15 8C15 7.58579 14.6642 7.25 14.25 7.25L8.75 7.25V1.75C8.75 1.33579 8.41421 1 8 1C7.58579 1 7.25 1.33579 7.25 1.75V7.25L1.75 7.25C1.33579 7.25 1 7.58579 1 8C1 8.41421 1.33579 8.75 1.75 8.75L7.25 8.75V14.25Z" fill="currentColor" className="text-text-primary"/>
-    </svg>
 }
 
 function SendIcon() {
@@ -215,19 +351,27 @@ function SendIcon() {
 
 // Main Component
 export function TextBox({ value, onChange, onSubmit, replyTo, setReplyTo, users }: TextBoxProps) {
-    const handleInput = (event: any, newValue: string) => {
-        onChange(newValue);
+    const handleInput = (_: any, newValue: string) => {
+        onChange({
+            ...value,
+            content: newValue
+        });
     };
 
     const handleKeyDown = (event: React.KeyboardEvent) => {
         if (event.key === 'Enter' && !event.shiftKey) {
             event.preventDefault();
-            onSubmit(event as any);
+            onSubmit(value.content || '', value.attachments);
         }
     };
 
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        onSubmit(value.content || '', value.attachments);
+    };
+
     return (
-        <form onSubmit={onSubmit} className="flex flex-col w-full relative z-50">
+        <form onSubmit={handleSubmit} className="flex flex-col w-full relative z-50">
             {replyTo && (
                 <div className="p-[10px]">
                     <ReplyPreview replyTo={replyTo} onClose={() => setReplyTo(null)} />
@@ -238,6 +382,8 @@ export function TextBox({ value, onChange, onSubmit, replyTo, setReplyTo, users 
                 users={users}
                 handleInput={handleInput}
                 handleKeyDown={handleKeyDown}
+                onSubmit={(content, attachments) => onSubmit(content, attachments)}
+                onChange={onChange}
             />
         </form>
     );

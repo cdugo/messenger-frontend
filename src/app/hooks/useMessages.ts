@@ -21,7 +21,8 @@ export function useMessages(serverId: string | undefined) {
           user: data.user,
           server_id: data.server_id,
           updated_at: data.updated_at,
-          reactions: []
+          reactions: data.reactions,
+          attachment_urls: data.attachment_urls
         };
         
         setMessages(prev => {
