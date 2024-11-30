@@ -1,4 +1,4 @@
-import { MeResponse, MessagesResponse, ServerWithUsers } from '../types/server';
+import { MeResponse, MessagesResponse, Server, ServerWithUsers } from '../types/server';
 import { LoginCredentials, User } from '../types/user';
 
 interface SignUpCredentials {
@@ -97,6 +97,56 @@ class APIClient {
     if (!response.ok) {
       throw new Error('Failed to fetch messages');
     }
+    return response.json();
+  }
+
+  async createServer(name: string, description: string) {
+    const response = await fetch(`${this.baseUrl}/servers`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        server: {
+          name,
+          description
+        }
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to create server');
+    }
+
+    return response.json();
+  }
+
+  async getAllServers(): Promise<ServerWithUsers[]> {
+    const response = await fetch(`${this.baseUrl}/servers`, {
+      credentials: 'include'
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch servers');
+    }
+
+    return response.json();
+  }
+
+  async joinServer(serverId: string | number) {
+    const response = await fetch(`${this.baseUrl}/servers/${serverId}/join`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to join server');
+    }
+
     return response.json();
   }
 }

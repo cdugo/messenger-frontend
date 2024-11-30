@@ -7,6 +7,7 @@ import { Server } from "../types/server";
 import { useServer } from '../contexts/ServerContext';
 import { websocket } from '@/lib/websocket';
 import { WebSocketNotification } from '../types/server';
+import { ServerDialog } from '@/components/ServerDialog';
 
 // Helper function to format timestamp
 function formatMessageTime(date: string) {
@@ -30,6 +31,7 @@ function formatMessageTime(date: string) {
 }
 
 function formatMessageContent(content: string) {
+  if (!content) return "";
   const mentionRegex = /@\[(\w+)\]/g;
   const parts = [];
   let lastIndex = 0;
@@ -129,8 +131,16 @@ export function ChatSidebar() {
   return (
     <div className="w-1/5 border-r bg-background">
       <div className="flex h-full flex-col">
-        <div className="flex h-14 items-center border-b px-4">
+        <div className="flex h-14 items-center border-b px-4 justify-between">
           <h2 className="font-semibold">Servers</h2>
+          <ServerDialog 
+            onServerCreated={(server) => {
+              setServers(prev => [...prev, server]);
+            }}
+            onServerJoined={(server) => {
+              setServers(prev => [...prev, server]);
+            }}
+          />
         </div>
         
         <div className="flex-1 overflow-y-auto">
@@ -158,7 +168,7 @@ export function ChatSidebar() {
                     {server.name}
                   </p>
                   <span className="text-xs text-gray-400">
-                    {formatMessageTime(server.latest_message.created_at)}
+                    { server.latest_message ? formatMessageTime(server.latest_message?.created_at) : ""}
                   </span>
                 </div>
                 
@@ -168,14 +178,14 @@ export function ChatSidebar() {
                       ? 'font-semibold text-white' 
                       : 'text-gray-400'
                   }`}>
-                    {server.latest_message.user.username}:
+                    {server.latest_message?.user?.username && `${server.latest_message.user.username}:`}
                   </span>
                   <span className={`text-sm truncate ${
                     server.read_state.unread_count > 0 
                       ? 'font-semibold text-white' 
                       : 'text-gray-300'
                   }`}>
-                    {formatMessageContent(server.latest_message.content)}
+                    {formatMessageContent(server.latest_message?.content) || ( server.latest_message ? "" : "No messages")}
                   </span>
                 </div>
               </div>
