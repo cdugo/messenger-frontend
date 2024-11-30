@@ -59,7 +59,7 @@ export function useMessages(serverId: string | undefined) {
         setMessages(prev => prev.map(m => 
           m.id === data.message_id
             ? { ...m, reactions: m.reactions.filter(r => 
-                !(r.user.username === data.reaction.username)
+                !(r.user.username === data.reaction.username && r.emoji === data.reaction.emoji)
               )}
             : m
         ));

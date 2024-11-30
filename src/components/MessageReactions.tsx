@@ -22,11 +22,15 @@ export function MessageReactions({ reactions, currentUsername, onReactionClick, 
       hasReacted: false 
     };
     
-    existing.count++;
-    existing.usernames.push(reaction.user.username);
-    if (reaction.user.username === currentUsername) {
-      existing.hasReacted = true;
+    // Only count valid reactions
+    if (reaction.user && reaction.user.username) {
+      existing.count++;
+      existing.usernames.push(reaction.user.username);
+      if (reaction.user.username === currentUsername) {
+        existing.hasReacted = true;
+      }
     }
+    
     acc.set(reaction.emoji, existing);
     return acc;
   }, new Map<string, { emoji: string; count: number; usernames: string[]; hasReacted: boolean }>());

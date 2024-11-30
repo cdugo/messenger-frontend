@@ -93,6 +93,7 @@ interface ReactionDeletedData extends BaseWebSocketMessage {
   reaction: {
     id: number;
     username: string;
+    emoji: string;
   };
 }
 

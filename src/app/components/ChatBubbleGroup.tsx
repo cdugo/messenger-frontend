@@ -168,8 +168,10 @@ export function ChatBubbleGroup({
 
   const handleReactionClick = useCallback((messageId: number, emoji: string, currentUsername: string) => {
     const message = messages.find(m => m.id === messageId);
-    const hasReacted = message?.reactions.some(
-      r => r.emoji === emoji && r.user.username === currentUsername
+    if (!message || !message.reactions) return;
+
+    const hasReacted = message.reactions.some(
+      r => r.emoji === emoji && r.user?.username === currentUsername
     );
 
     if (hasReacted) {
