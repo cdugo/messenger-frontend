@@ -6,7 +6,6 @@ import { useState, useRef, useEffect } from 'react';
 import { apiClient } from '../api/apiClient';
 import { ReplyTo, TextBox } from '@/components/TextBox';
 import { websocket } from '@/lib/websocket';
-import { User } from '../types/user';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import { useMessages } from '../hooks/useMessages';
 import { groupMessages, getParentMessage } from '../utils/messageUtils';
