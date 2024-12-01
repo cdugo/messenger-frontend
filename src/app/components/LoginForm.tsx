@@ -14,7 +14,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from 'next/link';
-import { apiClient } from '../api/apiClient';
 
 export default function LoginForm() {
   const [username, setUsername] = useState('');
@@ -22,13 +21,13 @@ export default function LoginForm() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const user = useUser();
+  const { user, login } = useUser();
 
   useEffect(() => {
-    if (user.user) {
+    if (user) {
       router.push('/');
     }
-  }, [user.user]);
+  }, [user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,22 +35,17 @@ export default function LoginForm() {
     setError('');
 
     try {
-      const result = await apiClient.login({ username, password });
-
-      if (!result) {
-        setError('Invalid username or password');
-      } else {
-        router.push('/');
-        router.refresh();
-      }
-    } catch {
-      setError('An unexpected error occurred');
+      await login({ username, password });
+      router.push('/');
+      router.refresh();
+    } catch (error) {
+      setError('Invalid username or password');
     } finally {
       setIsLoading(false);
     }
   };
 
-  if (user.user) {
+  if (user) {
     return null;
   }
 
