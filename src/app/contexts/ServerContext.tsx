@@ -1,8 +1,9 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { Server, ServerWithUsers } from '../types/server';
 import { apiClient } from '../api/apiClient';
+import { websocket } from '@/lib/websocket';
 
 interface ServerContextType {
   currentServer: ServerWithUsers | null;
@@ -15,6 +16,11 @@ export function ServerProvider({ children }: { children: React.ReactNode }) {
   const [currentServer, setCurrentServer] = useState<ServerWithUsers | null>(null);
 
   const handleSetCurrentServer = useCallback(async (server: Server | ServerWithUsers | null) => {
+    // Unsubscribe from current server before switching
+    if (currentServer?.id) {
+      websocket.unsubscribeFromServer(currentServer.id);
+    }
+
     // If null or undefined, just clear the current server
     if (!server) {
       setCurrentServer(null);
@@ -23,7 +29,6 @@ export function ServerProvider({ children }: { children: React.ReactNode }) {
 
     // If it's already a ServerWithUsers, use it directly
     if ('users' in server) {
-      // Prevent unnecessary re-renders if the server is the same
       setCurrentServer(prev => 
         prev?.id === server.id ? prev : server
       );
@@ -47,7 +52,16 @@ export function ServerProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error('Failed to fetch server details:', error);
     }
-  }, []);
+  }, [currentServer]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (currentServer?.id) {
+        websocket.unsubscribeFromServer(currentServer.id);
+      }
+    };
+  }, [currentServer]);
 
   return (
     <ServerContext.Provider value={{ currentServer, setCurrentServer: handleSetCurrentServer }}>
