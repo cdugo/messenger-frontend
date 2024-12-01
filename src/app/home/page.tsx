@@ -58,7 +58,6 @@ export default function HomePage() {
         setHasMoreMessages(messagesData.pagination.next_page !== null);
         websocket.subscribeToServer(currentServer.id, handleWebSocketMessage);
         
-        // Initial scroll to bottom without animation
         if (initialLoad) {
           messagesEndRef.current?.scrollIntoView({ behavior: 'instant' });
           setInitialLoad(false);
@@ -71,7 +70,10 @@ export default function HomePage() {
     };
 
     setupServerAndMessages();
-    return () => { isSubscribed = false; };
+
+    return () => { 
+      isSubscribed = false;
+    };
   }, [currentServer, handleWebSocketMessage, initialLoad, setMessages, setIsLoading, setHasMoreMessages]);
 
   const handleSendMessage = (content: string, attachments?: string[]) => {
