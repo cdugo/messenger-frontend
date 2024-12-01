@@ -67,7 +67,11 @@ export function ChatSidebar() {
       apiClient.getMe().then((data) => { 
         setServers(data.servers);
       });
+    }
+  }, [user]);
 
+  useEffect(() => {
+    if (user) {
       // Subscribe to notifications
       websocket.subscribeToNotifications((notification: WebSocketNotification) => {
         if (notification.type === 'new_message') {
