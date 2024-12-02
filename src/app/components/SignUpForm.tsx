@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useUser } from '../contexts/UserContext';
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -30,6 +31,7 @@ export default function SignUpForm() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const { login } = useUser();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,7 +40,9 @@ export default function SignUpForm() {
 
     try {
       await apiClient.signup(formData);
-      router.push('/login?message=Account created successfully');
+      await login({ username: formData.username, password: formData.password });
+      router.push('/');
+      router.refresh();
     } catch {
       setError('Failed to create account. Please try again.');
     } finally {
