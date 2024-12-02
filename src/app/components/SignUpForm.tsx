@@ -39,7 +39,7 @@ export default function SignUpForm() {
     try {
       await apiClient.signup(formData);
       router.push('/login?message=Account created successfully');
-    } catch (err) {
+    } catch {
       setError('Failed to create account. Please try again.');
     } finally {
       setIsLoading(false);

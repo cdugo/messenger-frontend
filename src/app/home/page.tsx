@@ -12,6 +12,7 @@ import { groupMessages, getParentMessage } from '../utils/messageUtils';
 import { MessageContent } from '../components/MessageContent';
 import { NoServerSelected, LoadingState, NoMessages } from '../components/StateMessages';
 import InfiniteScroll from 'react-infinite-scroll-component';
+import { toast } from 'sonner';
 
 type NewMessage = { content?: string; attachments: string[] }
 
@@ -79,14 +80,19 @@ export default function HomePage() {
   const handleSendMessage = (content: string, attachments?: string[]) => {
     if ((!content?.trim() && (!attachments || attachments.length === 0)) || !currentServer) return;
 
-    websocket.sendMessage(
-      currentServer.id, 
-      content, 
-      replyTo?.id,
-      attachments
-    );
-    setNewMessage({ content: "", attachments: [] });
-    setReplyTo(null);
+    try {
+      websocket.sendMessage(
+        currentServer.id, 
+        content, 
+        replyTo?.id,
+        attachments
+      );
+      setNewMessage({ content: "", attachments: [] });
+      setReplyTo(null);
+    } catch (err) {
+      toast.error('Failed to send message. Please try again.');
+      console.error('Error sending message:', err);
+    }
   };
 
   if (!currentServer) return <NoServerSelected />;

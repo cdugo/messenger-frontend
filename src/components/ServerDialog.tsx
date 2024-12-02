@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { apiClient } from "@/app/api/apiClient";
-import { ServerWithUsers } from "@/app/types/server";
+import { Server, ServerWithUsers } from "@/app/types/server";
 import { useRouter } from "next/navigation";
 import { useServer } from "@/app/contexts/ServerContext";
 import LoadingSpinner from "./LoadingSpinner";
@@ -12,8 +12,8 @@ import { PlusIcon } from "./icons/PlusIcon";
 import { ServerMembersDialog } from './ServerMembersDialog';
 
 interface ServerDialogProps {
-  onServerCreated: (server: ServerWithUsers) => void;
-  onServerJoined: (server: ServerWithUsers) => void;
+  onServerCreated: (server: Server) => void;
+  onServerJoined: (server: Server) => void;
 }
 
 export function ServerDialog({ onServerCreated, onServerJoined }: ServerDialogProps) {
@@ -30,7 +30,7 @@ export function ServerDialog({ onServerCreated, onServerJoined }: ServerDialogPr
     e.preventDefault();
     setIsLoading(true);
     try {
-      const server = await apiClient.createServer(name, description);
+      const server = await apiClient.createServer({name, description});
       onServerCreated(server);
       setCurrentServer(server);
       router.push('/');

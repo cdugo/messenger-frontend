@@ -4,6 +4,8 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, LoginCredentials } from '../types/user';
 import { apiClient } from '../api/apiClient';
 import { useRouter } from 'next/navigation';
+import { useErrorHandler } from '@/hooks/useErrorHandler';
+import { toast } from 'sonner';
 
 interface UserContextType {
   user: User | null;
@@ -18,6 +20,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const { handleError } = useErrorHandler();
 
   useEffect(() => {
     checkAuth();
@@ -27,9 +30,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     try {
       const currentUser = await apiClient.getMe();
       setUser(currentUser.user);
-    } catch (error) {
+    } catch (err) {
+      handleError(err);
       setUser(null);
-      router.push('/login');
+      if (!window.location.pathname.includes('/login')) {
+        router.push('/login');
+      }
     } finally {
       setLoading(false);
     }
@@ -39,8 +45,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     try {
       const loggedInUser = await apiClient.login(credentials);
       setUser(loggedInUser);
-    } catch (error) {
-      throw new Error('Login failed');
+      toast.success('Successfully logged in!');
+    } catch (err) {
+      handleError(err);
+      throw err;
     }
   };
 
@@ -48,8 +56,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     try {
       await apiClient.logout();
       setUser(null);
-    } catch (error) {
-      throw new Error('Logout failed');
+      toast.success('Successfully logged out!');
+      router.push('/login');
+    } catch (err) {
+      handleError(err);
+      throw err;
     }
   };
 

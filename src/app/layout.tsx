@@ -4,6 +4,7 @@ import "./globals.css";
 import { UserProvider } from "./contexts/UserContext";
 import { ServerProvider } from "./contexts/ServerContext";
 import { LayoutWrapper } from "./components/LayoutWrapper";
+import { ToastProvider } from "@/components/providers/ToastProvider";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -34,6 +35,7 @@ export default async function RootLayout({
             <LayoutWrapper>
               {children}
             </LayoutWrapper>
+            <ToastProvider />
           </ServerProvider>
         </UserProvider>
       </body>

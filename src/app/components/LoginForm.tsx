@@ -38,7 +38,7 @@ export default function LoginForm() {
       await login({ username, password });
       router.push('/');
       router.refresh();
-    } catch (error) {
+    } catch {
       setError('Invalid username or password');
     } finally {
       setIsLoading(false);

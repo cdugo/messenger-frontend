@@ -1,23 +1,21 @@
 import { createConsumer, Subscription } from '@rails/actioncable';
-import { WebSocketMessage, WebSocketNotification } from "@/app/types/server";
+import { toast } from 'sonner';
+import { getErrorMessage } from './error-utils';
+import { WebSocketMessage, WebSocketNotification } from '@/app/types/server';
 
-export type MessageCallback = (data: WebSocketMessage) => void;
-export type NotificationCallback = (data: WebSocketNotification) => void;
-
-interface ChannelCallback {
-  type: 'message' | 'notification';
-  callback: MessageCallback | NotificationCallback;
-}
+type MessageCallback = (data: WebSocketMessage) => void;
+type NotificationCallback = (data: WebSocketNotification) => void;
 
 class WebSocketClient {
   private consumer;
-  private serverSubscriptions: Map<string, Subscription> = new Map();
-  private callbacks: Map<string, ChannelCallback> = new Map();
+  private serverSubscriptions: Map<string, Subscription>;
+  private callbacks: Map<string, MessageCallback>;
   private notificationSubscription?: Subscription;
 
   constructor() {
-    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8080/cable';
-    this.consumer = createConsumer(wsUrl);
+    this.consumer = createConsumer(process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8080/cable');
+    this.serverSubscriptions = new Map();
+    this.callbacks = new Map();
   }
 
   private getServerKey(serverId: string | number): string {
@@ -26,33 +24,36 @@ class WebSocketClient {
 
   subscribeToServer(serverId: string | number, callback: MessageCallback) {
     const serverKey = this.getServerKey(serverId);
-    
-    // Store the callback with its type
-    this.callbacks.set(serverKey, { type: 'message', callback });
 
-    // Create the subscription
+    // Unsubscribe from any existing subscription for this server
+    if (this.serverSubscriptions.has(serverKey)) {
+      this.unsubscribeFromServer(serverId);
+    }
+
     const subscription = this.consumer.subscriptions.create(
       {
         channel: 'MessageChannel',
-        server_id: Number(serverId)
+        server_id: serverId
       },
       {
         connected: () => {
-          console.log(`Connected to server ${serverKey}`);
+          console.log(`Connected to server ${serverId}`);
         },
         disconnected: () => {
-          console.log(`Disconnected from server ${serverKey}`);
+          console.log(`Disconnected from server ${serverId}`);
         },
         received: (data) => {
-          const cb = this.callbacks.get(serverKey);
-          if (cb && cb.type === 'message') {
-            cb.callback(data);
+          if (data.type === 'error') {
+            toast.error(getErrorMessage(data));
+            return;
           }
+          callback(data);
         }
       }
     );
 
     this.serverSubscriptions.set(serverKey, subscription);
+    this.callbacks.set(serverKey, callback);
   }
 
   subscribeToNotifications(callback: NotificationCallback) {
@@ -107,7 +108,7 @@ class WebSocketClient {
         attachment_ids: attachments || []
       });
     } else {
-      console.error(`No subscription found for server ${serverKey}`);
+      toast.error('Failed to send message: Not connected to server');
     }
   }
 
@@ -121,7 +122,7 @@ class WebSocketClient {
         emoji
       });
     } else {
-      console.error(`No subscription found for server ${serverKey}`);
+      toast.error('Failed to add reaction: Not connected to server');
     }
   }
 
@@ -135,7 +136,7 @@ class WebSocketClient {
         emoji
       });
     } else {
-      console.error(`No subscription found for server ${serverKey}`);
+      toast.error('Failed to remove reaction: Not connected to server');
     }
   }
 

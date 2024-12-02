@@ -1,154 +1,111 @@
-import { MeResponse, MessagesResponse, Server, ServerWithUsers } from '../types/server';
-import { LoginCredentials, User } from '../types/user';
+import { LoginCredentials, SignupCredentials, User } from '../types/user';
+import { Server, ServerWithUsers, MeResponse, MessagesResponse } from '../types/server';
 
-interface SignUpCredentials {
-  email: string;
-  username: string;
-  password: string;
+interface ApiErrorResponse {
+  status: string;
+  message: string;
+  details?: string;
 }
 
-class APIClient {
-  private baseUrl: string = 'http://localhost:8080';
+interface CreateServerParams {
+  name: string;
+  description?: string;
+}
 
-  async login(credentials: LoginCredentials): Promise<User> {
-    const response = await fetch(`${this.baseUrl}/login`, {
-      method: 'POST',
+class ApiError extends Error {
+  status: string;
+  details?: string;
+
+  constructor(response: ApiErrorResponse) {
+    super(response.message);
+    this.status = response.status;
+    this.details = response.details;
+  }
+}
+
+class ApiClient {
+  private baseUrl: string;
+
+  constructor() {
+    this.baseUrl = process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:8080';
+  }
+
+  private async handleResponse<T>(response: Response): Promise<T> {
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new ApiError(data);
+    }
+    
+    return data;
+  }
+
+  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+      ...options,
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
+        ...options.headers,
       },
-      credentials: 'include', // Important for cookies
-      body: JSON.stringify(credentials),
     });
 
-    if (!response.ok) {
-      throw new Error('Login failed');
-    }
+    return this.handleResponse<T>(response);
+  }
 
-    return response.json();
+  async login(credentials: LoginCredentials): Promise<User> {
+    return this.request<User>('/login', {
+      method: 'POST',
+      body: JSON.stringify(credentials),
+    });
+  }
+
+  async signup(credentials: SignupCredentials): Promise<User> {
+    return this.request<User>('/signup', {
+      method: 'POST',
+      body: JSON.stringify(credentials),
+    });
   }
 
   async logout(): Promise<void> {
-    await fetch(`${this.baseUrl}/logout`, {
+    return this.request('/logout', {
       method: 'POST',
-      credentials: 'include',
     });
-  }
-
-  async getCurrentUser(): Promise<User | null> {
-    try {
-      const response = await fetch(`${this.baseUrl}/me`, {
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        return null;
-      }
-
-      return response.json();
-    } catch (error) {
-      return null;
-    }
-  }
-
-  async getServer(id: string): Promise<ServerWithUsers | null> {
-    try {
-      const response = await fetch(`${this.baseUrl}/servers/${id}`, {
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to get server');
-      }
-
-      return response.json();
-    } catch (error) {
-      return null;
-    }
-  }
-
-  async signup(credentials: SignUpCredentials): Promise<User> {
-    const response = await fetch(`${this.baseUrl}/signup`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(credentials),
-    });
-
-    if (!response.ok) {
-      throw new Error('Signup failed');
-    }
-
-    return response.json();
   }
 
   async getMe(): Promise<MeResponse> {
-    const response = await fetch(`${this.baseUrl}/me`, {
-      credentials: 'include',
+    return this.request<MeResponse>('/me');
+  }
+
+  async getServer(id: number | string): Promise<ServerWithUsers> {
+    return this.request<ServerWithUsers>(`/servers/${id}`);
+  }
+
+  async createServer(params: CreateServerParams): Promise<Server> {
+    return this.request<Server>('/servers', {
+      method: 'POST',
+      body: JSON.stringify({
+        server: {
+          name: params.name,
+          description: params.description
+        }
+      }),
     });
-    return response.json();
   }
 
   async getMessages(serverId: number | string, page: number = 1): Promise<MessagesResponse> {
-    const response = await fetch(`${this.baseUrl}/servers/${serverId}/messages?page=${page}`, {
-      credentials: 'include',
-    });
-    
-    if (!response.ok) {
-      throw new Error('Failed to fetch messages');
-    }
-    return response.json();
-  }
-
-  async createServer(name: string, description: string) {
-    const response = await fetch(`${this.baseUrl}/servers`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        server: {
-          name,
-          description
-        }
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to create server');
-    }
-
-    return response.json();
+    return this.request<MessagesResponse>(`/servers/${serverId}/messages?page=${page}`);
   }
 
   async getAllServers(): Promise<ServerWithUsers[]> {
-    const response = await fetch(`${this.baseUrl}/servers`, {
-      credentials: 'include'
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch servers');
-    }
-
-    return response.json();
+    return this.request<ServerWithUsers[]>('/servers');
   }
 
-  async joinServer(serverId: string | number) {
-    const response = await fetch(`${this.baseUrl}/servers/${serverId}/join`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-      }
+  async joinServer(serverId: string | number): Promise<Server> {
+    return this.request<Server>(`/servers/${serverId}/join`, {
+      method: 'POST'
     });
-
-    if (!response.ok) {
-      throw new Error('Failed to join server');
-    }
-
-    return response.json();
   }
 }
 
-export const apiClient = new APIClient();
+export const apiClient = new ApiClient();
