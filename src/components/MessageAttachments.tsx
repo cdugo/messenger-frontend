@@ -1,3 +1,5 @@
+'use client';
+
 import Image from 'next/image';
 import { AttachmentUrl } from '@/app/types/server';
 import { useState } from 'react';

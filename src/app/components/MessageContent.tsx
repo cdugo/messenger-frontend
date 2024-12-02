@@ -1,3 +1,5 @@
+'use client';
+
 import { Message } from '../types/server';
 import { User } from '../types/user';
 import { ChatBubbleGroup } from './ChatBubbleGroup';

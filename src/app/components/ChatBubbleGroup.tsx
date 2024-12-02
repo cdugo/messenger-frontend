@@ -1,3 +1,5 @@
+'use client';
+
 import { Avatar } from "@medusajs/ui";
 import { Message } from '../types/server';
 import { User } from '../types/user';

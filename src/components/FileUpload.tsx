@@ -1,3 +1,5 @@
+'use client';
+
 import { ChangeEvent, useRef } from 'react';
 import { PlusIcon } from './icons/PlusIcon';
 

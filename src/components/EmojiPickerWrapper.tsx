@@ -1,3 +1,5 @@
+'use client';
+
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import data from '@emoji-mart/data';
@@ -48,6 +50,7 @@ export function EmojiPickerWrapper({ position, onEmojiSelect, onClickOutside }: 
       <Picker
         data={data}
         theme="dark"
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         onEmojiSelect={(emoji: any) => {
           onEmojiSelect(emoji.unified.toLowerCase());
         }}

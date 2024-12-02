@@ -1,3 +1,5 @@
+'use client';
+
 import { DeleteIcon } from "./icons/DeleteIcon";
 import { User } from "@/app/types/user";
 import { Avatar } from "@medusajs/ui";
@@ -304,6 +306,7 @@ function MessageInputContainer({
                         <div className="flex flex-col w-full items-start relative py-[6px]">
                             <MentionsInput
                                 value={value.content || ''}
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                 onChange={(e: any, newValue: string, newPlainTextValue: string) => {
                                     handleInput(e, newPlainTextValue);
                                 }}
@@ -351,6 +354,7 @@ function SendIcon() {
 
 // Main Component
 export function TextBox({ value, onChange, onSubmit, replyTo, setReplyTo, users }: TextBoxProps) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handleInput = (_: any, newValue: string) => {
         onChange({
             ...value,

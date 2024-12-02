@@ -1,10 +1,13 @@
-import { DirectUpload } from '@rails/activestorage';
+'use client';
 
 interface DirectUploadResult {
   signed_id: string;
 }
 
 export async function directUpload(file: File): Promise<string> {
+  // Dynamically import DirectUpload only on the client side
+  const { DirectUpload } = await import('@rails/activestorage');
+  
   return new Promise((resolve, reject) => {
     const upload = new DirectUpload(
       file,

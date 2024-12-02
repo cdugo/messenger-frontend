@@ -35,5 +35,11 @@ export function middleware(request: NextRequest) {
 
 // Configure paths that trigger middleware
 export const config = {
-  matcher: [...protectedRoutes, ...authRoutes]
+  matcher: [
+    '/',
+    '/home',
+    '/login',
+    '/signup',
+    '/((?!api|_next/static|_next/image|favicon.ico).*)'
+  ]
 }
