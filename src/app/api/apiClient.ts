@@ -27,7 +27,7 @@ class ApiClient {
   private baseUrl: string;
 
   constructor() {
-    this.baseUrl = process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:8080';
+    this.baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
   }
 
   private async handleResponse<T>(response: Response): Promise<T> {
