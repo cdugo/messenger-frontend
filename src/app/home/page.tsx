@@ -10,11 +10,9 @@ import LoadingSpinner from '@/components/LoadingSpinner';
 import { useMessages } from '../hooks/useMessages';
 import { groupMessages, getParentMessage } from '../utils/messageUtils';
 import { MessageContent } from '../components/MessageContent';
-import { NoServerSelected, LoadingState, NoMessages } from '../components/StateMessages';
 import InfiniteScroll from 'react-infinite-scroll-component';
 import { toast } from 'sonner';
 import { MessageSkeleton } from '../components/MessageSkeleton';
-import { ChatSidebarSkeleton } from '../components/ChatSidebarSkeleton';
 
 type NewMessage = { content?: string; attachments: string[] }
 

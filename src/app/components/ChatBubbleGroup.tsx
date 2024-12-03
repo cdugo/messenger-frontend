@@ -24,7 +24,7 @@ interface ChatBubbleGroupProps {
 }
 
 function formatMessageContent(content: string, users: User[], isCurrentUser: boolean) {
-  const mentionRegex = /@\[(\w+)\]/g;
+  const mentionRegex = /@(\w+|\[\w+\])/g;
   const parts = [];
   let lastIndex = 0;
   let match;
@@ -34,7 +34,7 @@ function formatMessageContent(content: string, users: User[], isCurrentUser: boo
       parts.push(content.slice(lastIndex, match.index));
     }
 
-    const username = match[1];
+    const username = match[1].replace(/[\[\]]/g, '');
     const isValidUser = users.some(user => user.username === username) || username === 'everyone';
     
     if (isValidUser) {
