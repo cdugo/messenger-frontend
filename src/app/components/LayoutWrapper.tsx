@@ -2,17 +2,18 @@
 
 import { useUser } from "../contexts/UserContext";
 import { ChatSidebar } from "./ChatSidebar";
+import { ChatSidebarSkeleton } from "./ChatSidebarSkeleton";
 
 export function LayoutWrapper({ children }: { children: React.ReactNode }) {
-  const { user } = useUser();
+  const { user, loading } = useUser();
 
-  if (!user) {
+  if (!user && !loading) {
     return <>{children}</>;
   }
 
   return (
     <div className="flex h-screen">
-      <ChatSidebar />
+      {loading ? <ChatSidebarSkeleton /> : <ChatSidebar />}
       <main className="flex-1">
         {children}
       </main>
