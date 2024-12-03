@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Message, WebSocketMessage, MessageType } from '../types/server';
 import { apiClient } from '../api/apiClient';
 
@@ -8,6 +8,46 @@ export function useMessages(serverId: string | undefined) {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMoreMessages, setHasMoreMessages] = useState(false);
+
+  useEffect(() => {
+    setMessages([]);
+    setCurrentPage(1);
+    setHasMoreMessages(false);
+    setIsLoading(true);
+
+    if (!serverId) {
+      setIsLoading(false);
+      return;
+    }
+
+    let isSubscribed = true;
+
+    const fetchMessages = async () => {
+      try {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        if (!isSubscribed) return;
+
+        const response = await apiClient.getMessages(serverId, 1);
+        if (!isSubscribed) return;
+
+        setMessages(response.messages);
+        setHasMoreMessages(response.pagination.next_page !== null);
+      } catch (error) {
+        console.error('Error fetching messages:', error);
+      } finally {
+        if (isSubscribed) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    fetchMessages();
+
+    return () => {
+      isSubscribed = false;
+    };
+  }, [serverId]);
 
   const handleWebSocketMessage = useCallback((data: WebSocketMessage) => {
     switch (data.type) {
