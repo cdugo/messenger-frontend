@@ -31,6 +31,13 @@ class ApiClient {
   }
 
   private async handleResponse<T>(response: Response): Promise<T> {
+    if (response.status === 401) {
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
+      throw new ApiError({ status: 'unauthorized', message: 'Please login' });
+    }
+    
     const data = await response.json();
     
     if (!response.ok) {
