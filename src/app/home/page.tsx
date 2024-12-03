@@ -120,7 +120,7 @@ export default function HomePage() {
       <div className="flex-none bg-background px-4 py-3 border-b border-gray-800">
         <h1 className="text-2xl font-bold text-white">{currentServer.name}</h1>
       </div>
-      {messages.length === 0 && <NoMessages />}
+      {!isLoading && messages.length === 0 && <NoMessages />}
 
       <div 
         id="scrollableDiv"
