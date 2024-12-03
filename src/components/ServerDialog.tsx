@@ -10,8 +10,6 @@ import { useServer } from "@/app/contexts/ServerContext";
 import LoadingSpinner from "./LoadingSpinner";
 import { PlusIcon } from "./icons/PlusIcon";
 import { ServerMembersDialog } from './ServerMembersDialog';
-import { websocket } from '@/lib/websocket';
-import { useMessages } from '@/app/hooks/useMessages';
 
 interface ServerDialogProps {
   onServerCreated: (server: Server) => void;
@@ -27,7 +25,6 @@ export function ServerDialog({ onServerCreated, onServerJoined }: ServerDialogPr
   const [joiningServerId, setJoiningServerId] = useState<string | null>(null);
   const router = useRouter();
   const { setCurrentServer } = useServer();
-  const { handleWebSocketMessage } = useMessages(undefined);
 
   const handleCreateServer = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,9 +52,6 @@ export function ServerDialog({ onServerCreated, onServerJoined }: ServerDialogPr
       
       // Close the dialog before updating the current server
       setIsOpen(false);
-      
-      // Subscribe to the WebSocket immediately
-      websocket.subscribeToServer(joinedServer.id, handleWebSocketMessage);
       
       // Use a small timeout to ensure the dialog is closed before navigation
       setTimeout(() => {
