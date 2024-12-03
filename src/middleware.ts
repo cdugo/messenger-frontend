@@ -1,49 +1,53 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-// Define protected routes
-const protectedRoutes = [
-  '/home',
-]
+const protectedRoutes = ['/home']
+const authRoutes = ['/login', '/signup']
 
-// Define public routes that should redirect if user is authenticated
-const authRoutes = [
-  '/login',
-  '/signup'
-]
-
-export function middleware(request: NextRequest) {
-  const currentUser = request.cookies.get('message_app_session')
+export async function middleware(request: NextRequest) {
+  const sessionCookie = request.cookies.get('message_app_session')
   const { pathname } = request.nextUrl
-  const isAuthRoute = authRoutes.some(route => pathname.startsWith(route))
-  const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route))
 
   // Create URLs for redirects
   const homeUrl = new URL('/home', request.url)
   const loginUrl = new URL('/login', request.url)
 
-  // If at root, redirect to home (which will then check auth)
+  // Verify authentication by making a request to your backend
+  const isAuthenticated = sessionCookie ? await verifyAuth(request) : false
+
+  // If at root, redirect to home
   if (pathname === '/') {
     return NextResponse.redirect(homeUrl)
   }
 
   // If user is authenticated and tries to access auth routes
-  if (currentUser && isAuthRoute) {
-    const response = NextResponse.redirect(homeUrl)
-    return response
+  if (isAuthenticated && authRoutes.some(route => pathname.startsWith(route))) {
+    return NextResponse.redirect(homeUrl)
   }
 
   // If user is not authenticated and tries to access protected routes
-  if (!currentUser && isProtectedRoute) {
-    const response = NextResponse.redirect(loginUrl)
-    return response
+  if (!isAuthenticated && protectedRoutes.some(route => pathname.startsWith(route))) {
+    return NextResponse.redirect(loginUrl)
   }
 
-  // For all other routes, continue
   return NextResponse.next()
 }
 
-// Configure paths that trigger middleware
+async function verifyAuth(request: NextRequest): Promise<boolean> {
+  try {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/me`, {
+      headers: {
+        Cookie: request.headers.get('cookie') || '',
+      },
+      credentials: 'include',
+    })
+    return response.ok
+  } catch (error) {
+    console.error('Auth verification failed:', error)
+    return false
+  }
+}
+
 export const config = {
   matcher: [
     '/',
