@@ -51,14 +51,9 @@ export function ServerDialog({ onServerCreated, onServerJoined }: ServerDialogPr
       onServerJoined(joinedServer);
       
       // Close the dialog before updating the current server
+      setCurrentServer(joinedServer);
+      router.push(`/`);
       setIsOpen(false);
-      
-      // Use a small timeout to ensure the dialog is closed before navigation
-      setTimeout(() => {
-        setCurrentServer(joinedServer);
-        router.push(`/?serverId=${joinedServer.id}`);
-      }, 100);
-      
     } catch (error) {
       console.error('Failed to join server:', error);
     } finally {
