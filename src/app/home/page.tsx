@@ -13,6 +13,7 @@ import { MessageContent } from '../components/MessageContent';
 import InfiniteScroll from 'react-infinite-scroll-component';
 import { toast } from 'sonner';
 import { MessageSkeleton } from '../components/MessageSkeleton';
+import { NoMessages, NoServerSelected } from '../components/StateMessages';
 
 type NewMessage = { content?: string; attachments: string[] }
 
@@ -96,14 +97,7 @@ export default function HomePage() {
   };
 
   if (!currentServer) {
-    return (
-      <div className="h-screen flex items-center justify-center text-gray-500">
-        <div className="flex flex-col items-center h-fit w-72 bg-neutral rounded-3xl px-4 py-12 text-center">
-          <p className="text-lg text-white">Open a chat to start a conversation.</p>
-          <p className="text-7xl mt-8 [text-shadow:_0_0_50px_rgba(255,255,255,0.5)]">💬</p>
-        </div>
-      </div>
-    );
+    return <NoServerSelected />;
   }
   
   const showSkeleton = isLoading;
@@ -126,6 +120,7 @@ export default function HomePage() {
       <div className="flex-none bg-background px-4 py-3 border-b border-gray-800">
         <h1 className="text-2xl font-bold text-white">{currentServer.name}</h1>
       </div>
+      {messages.length === 0 && <NoMessages />}
 
       <div 
         id="scrollableDiv"
