@@ -178,10 +178,28 @@ function MessageInputContainer({
         };
     }, [previews]);
 
+    const clearMessage = () => {
+        // Clear previews
+        previews.forEach(preview => URL.revokeObjectURL(preview.url));
+        setPreviews([]);
+        // Clear content and attachments
+        onChange({ content: "", attachments: [] });
+    };
+
     const handleSubmit = () => {
         const hasAttachments = value.attachments && value.attachments.length > 0;
         if (value.content?.trim() || hasAttachments) {
             onSubmit(value.content || '', value.attachments);
+            clearMessage();
+        }
+    };
+
+    const handleKeyPress = (event: React.KeyboardEvent) => {
+        if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault();
+            handleSubmit();
+        } else {
+            handleKeyDown(event);
         }
     };
 
@@ -306,11 +324,10 @@ function MessageInputContainer({
                         <div className="flex flex-col w-full items-start relative py-[6px]">
                             <MentionsInput
                                 value={value.content || ''}
-                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                 onChange={(e: any, newValue: string, newPlainTextValue: string) => {
                                     handleInput(e, newPlainTextValue);
                                 }}
-                                onKeyDown={handleKeyDown}
+                                onKeyDown={handleKeyPress}
                                 placeholder="Write a message..."
                                 style={mentionsInputStyle}
                                 className="mentions-input"
@@ -363,19 +380,14 @@ export function TextBox({ value, onChange, onSubmit, replyTo, setReplyTo, users 
     };
 
     const handleKeyDown = (event: React.KeyboardEvent) => {
-        if (event.key === 'Enter' && !event.shiftKey) {
-            event.preventDefault();
-            onSubmit(value.content || '', value.attachments);
+        // Only handle non-Enter key events here
+        if (event.key !== 'Enter' || event.shiftKey) {
+            // Add any additional key handling here if needed
         }
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        onSubmit(value.content || '', value.attachments);
-    };
-
     return (
-        <form onSubmit={handleSubmit} className="flex flex-col w-full relative z-50">
+        <form className="flex flex-col w-full relative z-50">
             {replyTo && (
                 <div className="p-[10px]">
                     <ReplyPreview replyTo={replyTo} onClose={() => setReplyTo(null)} />
@@ -386,7 +398,7 @@ export function TextBox({ value, onChange, onSubmit, replyTo, setReplyTo, users 
                 users={users}
                 handleInput={handleInput}
                 handleKeyDown={handleKeyDown}
-                onSubmit={(content, attachments) => onSubmit(content, attachments)}
+                onSubmit={onSubmit}
                 onChange={onChange}
             />
         </form>

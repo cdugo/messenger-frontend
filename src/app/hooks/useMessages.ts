@@ -20,9 +20,13 @@ export function useMessages(serverId: string | undefined) {
           parent_message_id: data.parent_message_id,
           user: data.user,
           server_id: data.server_id,
-          updated_at: data.updated_at,
+          updated_at: data.created_at,
           reactions: data.reactions,
-          attachment_urls: data.attachment_urls
+          attachment_urls: data.attachments?.map(attachment => ({
+            id: attachment.id,
+            url: attachment.url,
+            thumbnail_url: attachment.thumbnail_url || attachment.url
+          })) || []
         };
         
         setMessages(prev => {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useUser } from "../contexts/UserContext";
 import { apiClient } from "../api/apiClient";
 import { Server } from "../types/server";
@@ -61,6 +61,12 @@ export function ChatSidebar() {
   const { user } = useUser();
   const [servers, setServers] = useState<Server[]>([]);
   const { setCurrentServer, currentServer } = useServer();
+  const currentServerRef = useRef<Server | null>(null);
+
+  // Keep the ref in sync with currentServer
+  useEffect(() => {
+    currentServerRef.current = currentServer;
+  }, [currentServer]);
 
   useEffect(() => {
     if (user) {
@@ -78,7 +84,7 @@ export function ChatSidebar() {
           setServers(prevServers => {
             return prevServers.map(server => {
               if (Number(server.id) === notification.server_id) {
-                const isCurrentServer = currentServer?.id === server.id;
+                const isCurrentServer = currentServerRef.current?.id === server.id;
                 return {
                   ...server,
                   latest_message: {
@@ -97,7 +103,7 @@ export function ChatSidebar() {
                   },
                   read_state: {
                     ...server.read_state,
-                    unread_count: isCurrentServer ? 0 : server.read_state.unread_count + 1
+                    unread_count: isCurrentServer ? 0 : (server.read_state.unread_count + 1)
                   }
                 };
               }
@@ -111,7 +117,7 @@ export function ChatSidebar() {
         websocket.unsubscribeFromNotifications();
       };
     }
-  }, [user, currentServer]);
+  }, [user]);
 
   const handleServerClick = (server: Server) => {
     setCurrentServer(server);

@@ -63,8 +63,10 @@ export function MessageAttachments({ attachments }: MessageAttachmentsProps) {
               alt="Message attachment"
               fill
               className="object-contain"
-              onLoadingComplete={(img) => {
-                handleImageLoad(attachment.id, img.naturalWidth, img.naturalHeight);
+              onLoad={(img) => {
+                if (img.target instanceof HTMLImageElement) {
+                  handleImageLoad(attachment.id, img.target.naturalWidth, img.target.naturalHeight);
+                }
               }}
               sizes={`(max-width: 400px) 100vw, 400px`}
             />

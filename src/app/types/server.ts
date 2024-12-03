@@ -56,6 +56,15 @@ interface BaseWebSocketMessage {
   type: MessageType;
 }
 
+interface MessageAttachment {
+  id: number;
+  filename: string;
+  content_type: string;
+  byte_size: number;
+  url: string;
+  thumbnail_url: string | null;
+}
+
 interface MessageData extends BaseWebSocketMessage {
   type: MessageType.MESSAGE;
   id: number;
@@ -64,11 +73,11 @@ interface MessageData extends BaseWebSocketMessage {
   server_id: number;
   parent_message_id: number | null;
   created_at: string;
-  updated_at: string;
   user: {
+    id: number;
     username: string;
   };
-  attachment_urls: AttachmentUrl[];
+  attachments?: MessageAttachment[];
   reactions: Reaction[];
 }
 
