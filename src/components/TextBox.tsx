@@ -324,6 +324,7 @@ function MessageInputContainer({
                         <div className="flex flex-col w-full items-start relative py-[6px]">
                             <MentionsInput
                                 value={value.content || ''}
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                 onChange={(e: any, newValue: string, newPlainTextValue: string) => {
                                     handleInput(e, newPlainTextValue);
                                 }}
