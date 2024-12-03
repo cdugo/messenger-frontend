@@ -85,7 +85,7 @@ export function ReactionTooltip({
               className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-sm leading-[20px]
                 ${hasReacted ? 
                   'bg-[#5651bf] text-white border-[2px] border-white/45' : 
-                  ` text-gray-300  ${isCurrentUserAuthor ? 'bg-[#5651bf] hover:bg-[#6861e6]' : 'bg-neutral-800 hover:bg-neutral-700'}`
+                  ` text-gray-300  ${isCurrentUserAuthor ? 'bg-[#5651bf] hover:bg-[#6861e6]' : 'bg-neutral-700 hover:bg-neutral-600'}`
                 }`}
             >
               <span>{String.fromCodePoint(parseInt(emoji, 16))}</span>
