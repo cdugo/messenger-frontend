@@ -24,9 +24,9 @@ export function useMessages(serverId: string | undefined) {
 
     const fetchMessages = async () => {
       try {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
         if (!isSubscribed) return;
+
+        await new Promise(resolve => setTimeout(resolve, 500));
 
         const response = await apiClient.getMessages(serverId, 1);
         if (!isSubscribed) return;
