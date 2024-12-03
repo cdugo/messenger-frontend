@@ -46,7 +46,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       setUser(loggedInUser);
       
       // Add a small delay to ensure the cookie is set
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Try to verify the session
       try {

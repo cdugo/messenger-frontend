@@ -10,13 +10,13 @@ export function useMessages(serverId: string | undefined) {
   const [hasMoreMessages, setHasMoreMessages] = useState(false);
 
   useEffect(() => {
-    setMessages([]);
-    setCurrentPage(1);
-    setHasMoreMessages(false);
     setIsLoading(true);
 
     if (!serverId) {
       setIsLoading(false);
+      setMessages([]);
+      setCurrentPage(1);
+      setHasMoreMessages(false);
       return;
     }
 
@@ -26,15 +26,16 @@ export function useMessages(serverId: string | undefined) {
       try {
         if (!isSubscribed) return;
 
-        await new Promise(resolve => setTimeout(resolve, 500));
-
         const response = await apiClient.getMessages(serverId, 1);
         if (!isSubscribed) return;
 
         setMessages(response.messages);
+        setCurrentPage(1);
         setHasMoreMessages(response.pagination.next_page !== null);
       } catch (error) {
         console.error('Error fetching messages:', error);
+        setMessages([]);
+        setHasMoreMessages(false);
       } finally {
         if (isSubscribed) {
           setIsLoading(false);
