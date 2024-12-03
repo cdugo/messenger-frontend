@@ -30,7 +30,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     try {
       const currentUser = await apiClient.getMe();
       setUser(currentUser.user);
-    } catch (err) {
+    } catch {
       setUser(null);
       if (!window.location.pathname.includes('/login') && !window.location.pathname.includes('/signup')) {
         router.replace('/login');
@@ -58,7 +58,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         } else {
           throw new Error('Failed to verify session');
         }
-      } catch (verifyError) {
+      } catch {
         setUser(null);
         throw new Error('Failed to verify login session');
       }
