@@ -106,7 +106,7 @@ export default function HomePage() {
     );
   }
   
-  const showSkeleton = isLoading || messages.length === 0;
+  const showSkeleton = isLoading;
   
   if (showSkeleton) {
     return (
