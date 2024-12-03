@@ -21,13 +21,13 @@ export default function LoginForm() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const { user, login } = useUser();
+  const { user, login, loading } = useUser();
 
   useEffect(() => {
-    if (user) {
-      router.push('/');
+    if (!loading && user) {
+      router.replace('/home');
     }
-  }, [user]);
+  }, [user, loading, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,14 +36,22 @@ export default function LoginForm() {
 
     try {
       await login({ username, password });
-      router.push('/');
-      router.refresh();
-    } catch {
-      setError('Invalid username or password');
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message === 'Failed to verify login session' 
+          ? 'Failed to establish session. Please try again.' 
+          : 'Invalid username or password');
+      } else {
+        setError('An unexpected error occurred');
+      }
     } finally {
       setIsLoading(false);
     }
   };
+
+  if (loading) {
+    return null;
+  }
 
   if (user) {
     return null;

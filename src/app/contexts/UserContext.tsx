@@ -31,10 +31,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       const currentUser = await apiClient.getMe();
       setUser(currentUser.user);
     } catch (err) {
-      handleError(err);
       setUser(null);
-      if (!window.location.pathname.includes('/login')) {
-        router.push('/login');
+      if (!window.location.pathname.includes('/login') && !window.location.pathname.includes('/signup')) {
+        router.replace('/login');
       }
     } finally {
       setLoading(false);
@@ -45,7 +44,24 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     try {
       const loggedInUser = await apiClient.login(credentials);
       setUser(loggedInUser);
-      toast.success('Successfully logged in!');
+      
+      // Add a small delay to ensure the cookie is set
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Try to verify the session
+      try {
+        const currentUser = await apiClient.getMe();
+        if (currentUser.user) {
+          setUser(currentUser.user);
+          toast.success('Successfully logged in!');
+          router.replace('/home');
+        } else {
+          throw new Error('Failed to verify session');
+        }
+      } catch (verifyError) {
+        setUser(null);
+        throw new Error('Failed to verify login session');
+      }
     } catch (err) {
       handleError(err);
       throw err;
@@ -57,7 +73,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       await apiClient.logout();
       setUser(null);
       toast.success('Successfully logged out!');
-      router.push('/login');
+      router.replace('/login');
     } catch (err) {
       handleError(err);
       throw err;

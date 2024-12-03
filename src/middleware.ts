@@ -15,21 +15,31 @@ const authRoutes = [
 export function middleware(request: NextRequest) {
   const currentUser = request.cookies.get('message_app_session')
   const { pathname } = request.nextUrl
+  const isAuthRoute = authRoutes.some(route => pathname.startsWith(route))
+  const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route))
 
+  // Create URLs for redirects
+  const homeUrl = new URL('/home', request.url)
+  const loginUrl = new URL('/login', request.url)
+
+  // If at root, redirect to home (which will then check auth)
   if (pathname === '/') {
-    return NextResponse.redirect(new URL('/home', request.url))
+    return NextResponse.redirect(homeUrl)
   }
 
-  // Redirect authenticated users away from auth pages
-  if (authRoutes.some(route => pathname.startsWith(route)) && currentUser) {
-    return NextResponse.redirect(new URL('/home', request.url))
+  // If user is authenticated and tries to access auth routes
+  if (currentUser && isAuthRoute) {
+    const response = NextResponse.redirect(homeUrl)
+    return response
   }
 
-  // Protect routes that require authentication
-  if (protectedRoutes.some(route => pathname.startsWith(route)) && !currentUser) {
-    return NextResponse.redirect(new URL('/login', request.url))
+  // If user is not authenticated and tries to access protected routes
+  if (!currentUser && isProtectedRoute) {
+    const response = NextResponse.redirect(loginUrl)
+    return response
   }
 
+  // For all other routes, continue
   return NextResponse.next()
 }
 

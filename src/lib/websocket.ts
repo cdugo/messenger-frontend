@@ -1,3 +1,5 @@
+'use client';
+
 import { createConsumer, Subscription } from '@rails/actioncable';
 import { toast } from 'sonner';
 import { getErrorMessage } from './error-utils';
@@ -13,7 +15,9 @@ class WebSocketClient {
   private notificationSubscription?: Subscription;
 
   constructor() {
-    this.consumer = createConsumer(process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8080/cable');
+    // Convert ws:// to wss:// if the API URL is using https://
+    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8080/cable';
+    this.consumer = createConsumer(wsUrl);
     this.serverSubscriptions = new Map();
     this.callbacks = new Map();
   }
