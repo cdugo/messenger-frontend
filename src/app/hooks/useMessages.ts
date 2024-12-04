@@ -4,28 +4,28 @@ import { apiClient } from '../api/apiClient';
 
 export function useMessages(serverId: string | undefined) {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMoreMessages, setHasMoreMessages] = useState(false);
 
   useEffect(() => {
-    setIsLoading(true);
-
     if (!serverId) {
-      setIsLoading(false);
       setMessages([]);
       setCurrentPage(1);
       setHasMoreMessages(false);
       return;
     }
 
+    setIsLoading(true);
+    setMessages([]);
+    setCurrentPage(1);
+    setHasMoreMessages(false);
+
     let isSubscribed = true;
 
     const fetchMessages = async () => {
       try {
-        if (!isSubscribed) return;
-
         const response = await apiClient.getMessages(serverId, 1);
         if (!isSubscribed) return;
 

@@ -14,50 +14,51 @@ import InfiniteScroll from 'react-infinite-scroll-component';
 import { toast } from 'sonner';
 import { MessageSkeleton } from '../components/MessageSkeleton';
 import { NoMessages, NoServerSelected } from '../components/StateMessages';
+import { redirect } from 'next/navigation';
 
 type NewMessage = { content?: string; attachments: string[] }
 
 export default function HomePage() {
   const { currentServer, setCurrentServer } = useServer();
-  const { user } = useUser();
+  const { user, loading } = useUser();
   const [newMessage, setNewMessage] = useState<NewMessage>({ content: "", attachments: [] });
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [replyTo, setReplyTo] = useState<ReplyTo | null>(null);
   const lastMessageRef = useRef<HTMLDivElement>(null);
   const [initialLoad, setInitialLoad] = useState(true);
+  const [isLoadingServer, setIsLoadingServer] = useState(false);
 
   const {
     messages,
     setMessages,
-    isLoading,
-    setIsLoading,
+    isLoading: isLoadingMessages,
     hasMoreMessages,
     loadMoreMessages,
     handleWebSocketMessage,
-    setHasMoreMessages,
     isLoadingMore
   } = useMessages(currentServer?.id);
 
-  // Initial server and messages setup
+  // Authentication check effect
+  useEffect(() => {
+    if (!loading && !user) {
+      redirect('/login');
+    }
+  }, [user, loading]);
+
+  // Server data fetching effect
   useEffect(() => {
     if (!currentServer) return;
     
-    setIsLoading(true);
+    setIsLoadingServer(true);
     let isSubscribed = true;
 
-    const setupServerAndMessages = async () => {
+    const fetchServerData = async () => {
       try {
-        // Fetch server data with users
         const serverData = await apiClient.getServer(currentServer.id);
         if (!serverData || !isSubscribed) return;
         setCurrentServer(serverData);
-
-        // Fetch initial messages
-        const messagesData = await apiClient.getMessages(currentServer.id, 1);
-        if (!isSubscribed) return;
-
-        setMessages(messagesData.messages);
-        setHasMoreMessages(messagesData.pagination.next_page !== null);
+        
+        // Set up WebSocket subscription
         websocket.subscribeToServer(currentServer.id, handleWebSocketMessage);
         
         if (initialLoad) {
@@ -67,16 +68,18 @@ export default function HomePage() {
       } catch (error) {
         console.error('Error fetching server data:', error);
       } finally {
-        setIsLoading(false);
+        if (isSubscribed) {
+          setIsLoadingServer(false);
+        }
       }
     };
 
-    setupServerAndMessages();
+    fetchServerData();
 
     return () => { 
       isSubscribed = false;
     };
-  }, [currentServer, handleWebSocketMessage, initialLoad, setMessages, setIsLoading, setHasMoreMessages]);
+  }, [currentServer, handleWebSocketMessage, initialLoad]);
 
   const handleSendMessage = (content: string, attachments?: string[]) => {
     if ((!content?.trim() && (!attachments || attachments.length === 0)) || !currentServer) return;
@@ -96,11 +99,26 @@ export default function HomePage() {
     }
   };
 
+  // Show loading state while checking auth
+  if (loading) {
+    return (
+      <div className="h-screen flex items-center justify-center">
+        <p className="text-7xl animate-pulse [text-shadow:_0_0_50px_rgba(255,255,255,0.5)]">💬</p>
+      </div>
+    );
+  }
+
+  // Don't render anything if not authenticated
+  if (!user) {
+    return null;
+  }
+
   if (!currentServer) {
     return <NoServerSelected />;
   }
   
-  const showSkeleton = isLoading;
+  // Show skeleton during initial load or when switching servers
+  const showSkeleton = isLoadingMessages || isLoadingServer;
   
   if (showSkeleton) {
     return (
@@ -115,12 +133,15 @@ export default function HomePage() {
     );
   }
 
+  // Only show no messages when we're certain there are none
+  const showNoMessages = !isLoadingMessages && !isLoadingServer && !isLoadingMore && messages.length === 0 && !hasMoreMessages;
+
   return (
     <div className="h-screen flex flex-col bg-background">
       <div className="flex-none bg-background px-4 py-3 border-b border-gray-800">
         <h1 className="text-2xl font-bold text-white">{currentServer.name}</h1>
       </div>
-      {!isLoading && !isLoadingMore && messages.length === 0 && hasMoreMessages === false && currentServer && <NoMessages />}
+      {showNoMessages && <NoMessages />}
 
       <div 
         id="scrollableDiv"
