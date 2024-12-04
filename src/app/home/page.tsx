@@ -30,7 +30,6 @@ export default function HomePage() {
 
   const {
     messages,
-    setMessages,
     isLoading: isLoadingMessages,
     hasMoreMessages,
     loadMoreMessages,
